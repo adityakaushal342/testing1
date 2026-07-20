@@ -38,6 +38,43 @@ actual demo results.
 Open `index.html` in any modern browser — no build step, no server, no
 dependencies. Works fully offline. Your journal persists in that browser.
 
+## Live trend helper (`qx_trend_bot.py`)
+
+A small command-line companion that reads **live 1-minute prices** for the major
+currency pairs and prints a plain-language read of the trend:
+
+- 🟢 **UP** — trend pointing up
+- 🔴 **DOWN** — trend pointing down
+- 🟡 **HOLD** — market is sideways / unclear → **do not trade, study why**
+
+It combines **EMA 20 / EMA 50** (direction), **RSI 14** (momentum),
+**MACD** (momentum shift) and **ADX** (trend *strength*). When ADX is weak, the
+EMAs are flat, or RSI sits in the 45–55 no-man's-land, it returns **HOLD** — the
+whole point being to keep you *out* of choppy, coin-flip conditions.
+
+```bash
+pip install -r requirements.txt
+
+python3 qx_trend_bot.py                 # scan all major pairs once
+python3 qx_trend_bot.py --quiet         # one line per pair, no reasons
+python3 qx_trend_bot.py --watch 60      # re-scan every 60 seconds
+python3 qx_trend_bot.py --pairs EURUSD GBPUSD   # only these pairs
+```
+
+### What it can and cannot do
+
+- ✅ Works on **real** market pairs (e.g. `EUR/USD` during market hours), using a
+  free public price source — no API key, no login, no account risk.
+- ❌ Cannot read QX / Pocket Option **OTC** pairs. Those run on a private
+  synthetic feed that is not published anywhere, so no external tool can see it.
+- ❌ Does **not** predict the outcome of a 2-minute binary option. Nothing can do
+  that reliably — 2-minute expiries are dominated by noise, and binary payouts
+  are below 100%, so the math favours the broker over time.
+
+Use it as a **learning aid**: read the trend, compare it to what you see on the
+chart, and practise on a **demo account**. It is deliberately built to say
+"HOLD / don't trade" often, because most short windows are not tradeable.
+
 ## Disclaimer
 
 This project does not provide trading signals or financial advice. Any decision to
