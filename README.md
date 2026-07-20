@@ -61,6 +61,25 @@ python3 qx_trend_bot.py --watch 60      # re-scan every 60 seconds
 python3 qx_trend_bot.py --pairs EURUSD GBPUSD   # only these pairs
 ```
 
+## Auto 2-minute runner (`auto_2min.py`)
+
+Runs forever and, at the start of every 2-minute candle, checks all the real
+majors and prints the trend — **UP / DOWN / HOLD** — applying the same rule set,
+then beeps when a pair is trade-worthy. Aligned to the 2-minute clock so each
+check lands near a fresh candle.
+
+```bash
+python3 auto_2min.py            # every 2 minutes, all majors (aligned)
+python3 auto_2min.py --once     # a single scan, then exit
+python3 auto_2min.py --pairs EURUSD GBPUSD
+python3 auto_2min.py --no-bell --no-color   # quiet, log-friendly
+```
+
+Each cycle prints a timestamp, every pair's signal, the pass/fail checklist for
+any UP/DOWN pair, and a `TRADE-WORTHY:` summary line (or `All HOLD` when nothing
+is clean). It reuses the same engine as `qx_trend_bot.py`, so the rules are
+identical.
+
 ### What it can and cannot do
 
 - ✅ Works on **real** market pairs (e.g. `EUR/USD` during market hours), using a
