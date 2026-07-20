@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trend Checker — 2-min Expiry Helper (Learning Tool)</title>
+<script>try{var _t=localStorage.getItem("qx_theme_v1");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
+</head>
+<body>
+<style>
+  :root{
+    --bg:#f4f6fb; --panel:#fff; --panel-2:#f0f3fa; --border:#dfe4ee;
+    --text:#1a2233; --muted:#5a6579;
+    --accent:#2f6fed; --accent-soft:#e7effd;
+    --up:#1a9e6b; --up-soft:#e2f6ee; --down:#d64545; --down-soft:#fbe6e6;
+    --warn:#b8860b; --warn-soft:#fbf3dd; --avoid:#7a51c9; --avoid-soft:#efe8fb;
+    --shadow:0 1px 3px rgba(20,30,55,.08),0 6px 20px rgba(20,30,55,.05);
+    --radius:14px;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    color-scheme:dark;
+    --bg:#0e1320; --panel:#161d2e; --panel-2:#1d263a; --border:#2a3346;
+    --text:#e7ecf5; --muted:#9aa6bd;
+    --accent:#5b8dff; --accent-soft:#1b2740;
+    --up:#35c98a; --up-soft:#142a20; --down:#f2696a; --down-soft:#2c1a1c;
+    --warn:#e0b64d; --warn-soft:#2c2716; --avoid:#b492f0; --avoid-soft:#241d38;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 26px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="light"]{
+    color-scheme:light;
+    --bg:#f4f6fb; --panel:#fff; --panel-2:#f0f3fa; --border:#dfe4ee; --text:#1a2233; --muted:#5a6579;
+    --accent:#2f6fed; --accent-soft:#e7effd; --up:#1a9e6b; --up-soft:#e2f6ee; --down:#d64545; --down-soft:#fbe6e6;
+    --warn:#b8860b; --warn-soft:#fbf3dd; --avoid:#7a51c9; --avoid-soft:#efe8fb;
+    --shadow:0 1px 3px rgba(20,30,55,.08),0 6px 20px rgba(20,30,55,.05);
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#0e1320; --panel:#161d2e; --panel-2:#1d263a; --border:#2a3346; --text:#e7ecf5; --muted:#9aa6bd;
+    --accent:#5b8dff; --accent-soft:#1b2740; --up:#35c98a; --up-soft:#142a20; --down:#f2696a; --down-soft:#2c1a1c;
+    --warn:#e0b64d; --warn-soft:#2c2716; --avoid:#b492f0; --avoid-soft:#241d38;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 26px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    line-height:1.5;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 64px}
+  header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+  h1{font-size:1.35rem;line-height:1.2;margin:0;letter-spacing:-.01em;text-wrap:balance}
+  .sub{color:var(--muted);font-size:.9rem;margin:4px 0 0}
+  .theme-btn{flex:none;border:1px solid var(--border);background:var(--panel);color:var(--text);
+    border-radius:10px;padding:8px 10px;font-size:.85rem;cursor:pointer}
+  .theme-btn:hover{border-color:var(--accent)}
+  .disclaimer{margin:14px 0;padding:11px 13px;border:1px solid var(--border);border-left:3px solid var(--warn);
+    background:var(--warn-soft);border-radius:10px;font-size:.83rem;color:var(--text)}
+  .disclaimer b{color:var(--warn)}
+  .tabs{display:flex;gap:6px;margin:16px 0 14px;background:var(--panel-2);padding:5px;border-radius:12px;border:1px solid var(--border)}
+  .tab{flex:1;text-align:center;padding:9px 8px;border-radius:9px;font-size:.9rem;font-weight:600;
+    cursor:pointer;color:var(--muted);border:1px solid transparent;user-select:none}
+  .tab[aria-selected="true"]{background:var(--panel);color:var(--text);box-shadow:var(--shadow);border-color:var(--border)}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px;margin-bottom:16px}
+  .card h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px}
+  label.fld{display:block;font-size:.85rem;color:var(--muted);margin:0 0 6px}
+  textarea,input[type=text],input[type=number]{width:100%;font-family:var(--mono);font-size:.92rem;
+    background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 11px}
+  textarea{min-height:120px;resize:vertical;line-height:1.45}
+  textarea:focus,input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px 18px;
+    font-size:.95rem;font-weight:600;cursor:pointer}
+  .btn:hover{filter:brightness(1.05)}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--border)}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:10px}
+  .hint code{font-family:var(--mono);background:var(--panel-2);padding:1px 5px;border-radius:5px;border:1px solid var(--border)}
+
+  /* verdict */
+  .verdict{display:none;text-align:center;padding:22px 16px}
+  .verdict.show{display:block}
+  .badge{display:inline-flex;align-items:center;gap:10px;font-size:1.9rem;font-weight:800;
+    letter-spacing:-.02em;padding:12px 26px;border-radius:14px;border:1px solid transparent}
+  .badge .dot{width:14px;height:14px;border-radius:50%}
+  .badge.UP{background:var(--up-soft);color:var(--up);border-color:var(--up)}
+  .badge.UP .dot{background:var(--up)}
+  .badge.DOWN{background:var(--down-soft);color:var(--down);border-color:var(--down)}
+  .badge.DOWN .dot{background:var(--down)}
+  .badge.HOLD{background:var(--avoid-soft);color:var(--avoid);border-color:var(--avoid)}
+  .badge.HOLD .dot{background:var(--avoid)}
+  .strength{margin-top:10px;font-size:.9rem;color:var(--muted);font-weight:600;letter-spacing:.03em}
+  .metrics{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+  .metric{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.8rem;color:var(--text);
+    background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:5px 9px}
+  .metric span{color:var(--muted)}
+
+  /* checklist */
+  ul.chk{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  ul.chk li{display:flex;align-items:flex-start;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border);font-size:.92rem}
+  ul.chk li:last-child{border-bottom:none}
+  .mark{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:.8rem;font-weight:800;margin-top:1px}
+  .mark.ok{background:var(--up-soft);color:var(--up)}
+  .mark.no{background:var(--panel-2);color:var(--muted)}
+  .mark.warn{background:var(--avoid-soft);color:var(--avoid)}
+  .grp-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 4px}
+  .grp-title:first-child{margin-top:0}
+
+  /* manual checkboxes */
+  .opt{display:flex;align-items:flex-start;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border);cursor:pointer}
+  .opt:last-child{border-bottom:none}
+  .opt input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+  .opt span{font-size:.92rem}
+  .opt small{display:block;color:var(--muted);font-size:.78rem}
+  .note{font-size:.82rem;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)}
+  .foot{text-align:center;color:var(--muted);font-size:.78rem;margin-top:26px}
+  @media (prefers-reduced-motion:no-preference){.verdict.show .badge{animation:pop .25s ease}}
+  @keyframes pop{from{transform:scale(.94);opacity:.4}to{transform:scale(1);opacity:1}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Trend Checker — 2-min Expiry Helper</h1>
+      <p class="sub">EMA 20/50 · RSI 14 · MACD · ADX — trend padho, HOLD samjho. Learning tool.</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle theme">◐ Theme</button>
+  </header>
+
+  <div class="disclaimer">
+    <b>Padho:</b> Ye ek <b>educational</b> tool hai, signal bot nahi. Koi tool 2-min binary
+    ka result reliably predict nahi kar sakta — payout 100% se kam hota hai, isliye lambe time
+    mein math broker ke favour mein hai. <b>Demo account</b> pe practice karo.
+  </div>
+
+  <div class="tabs" role="tablist">
+    <div class="tab" id="tab-paste" role="tab" aria-selected="true" tabindex="0">📋 Paste Prices</div>
+    <div class="tab" id="tab-manual" role="tab" aria-selected="false" tabindex="0">✅ Manual Checklist</div>
+  </div>
+
+  <!-- PASTE MODE -->
+  <section id="pane-paste">
+    <div class="card">
+      <h2>Recent prices daalo</h2>
+      <label class="fld" for="prices">Chart se recent closing prices (purane se naye tak, upar se niche).
+        Ek line mein ek number, ya OHLC (4 number: open high low close).</label>
+      <textarea id="prices" spellcheck="false" placeholder="1.08420&#10;1.08435&#10;1.08460&#10;1.08455&#10;… (kam se kam ~60 values behtar)"></textarea>
+      <div class="row">
+        <button class="btn" id="analyseBtn" type="button">Analyse</button>
+        <button class="btn ghost" id="sampleBtn" type="button">Sample bhar do</button>
+        <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+      </div>
+      <p class="hint">Tip: TradingView / chart se close values copy karo. Sirf close do to bhi EMA/RSI/MACD
+        chal jaata hai; <code>ADX</code> aur candle-checks ke liye poori OHLC line do. Jitna zyada data, utna behtar.</p>
+    </div>
+  </section>
+
+  <!-- MANUAL MODE -->
+  <section id="pane-manual" hidden>
+    <div class="card">
+      <h2>Chart pe jo dikh raha hai woh tick karo</h2>
+      <p class="sub" style="margin:0 0 10px">Ye mode <b>OTC pairs pe bhi</b> chalta hai — aap apni aankh se chart padho.</p>
+      <div id="manualGroups"></div>
+      <div class="note" id="manualNote"></div>
+    </div>
+  </section>
+
+  <!-- VERDICT (shared) -->
+  <div class="card verdict" id="verdict">
+    <div class="badge HOLD" id="badge"><span class="dot"></span><span id="badgeText">HOLD</span></div>
+    <div class="strength" id="strength"></div>
+    <div class="metrics" id="metrics"></div>
+  </div>
+
+  <!-- CHECKLIST (shared) -->
+  <div class="card" id="chkCard" hidden>
+    <h2>Kyun? — Rule checklist</h2>
+    <ul class="chk" id="chkList"></ul>
+  </div>
+
+  <p class="foot">Not financial advice · Practise on demo · News windows ke aas-paas trade avoid karo</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------- theme ----------
+  var KEY="qx_theme_v1";
+  try{var t=localStorage.getItem(KEY); if(t) document.documentElement.setAttribute("data-theme",t);}catch(e){}
+  document.getElementById("themeBtn").addEventListener("click",function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    if(!cur){ cur = matchMedia("(prefers-color-scheme:dark)").matches ? "dark":"light"; }
+    var next = cur==="dark" ? "light":"dark";
+    document.documentElement.setAttribute("data-theme",next);
+    try{localStorage.setItem(KEY,next);}catch(e){}
+  });
+
+  // ---------- indicators ----------
+  function ema(v,p){ if(!v.length) return []; var k=2/(p+1),out=[v[0]]; for(var i=1;i<v.length;i++) out.push(v[i]*k+out[i-1]*(1-k)); return out; }
+  function rsi(v,p){ p=p||14; if(v.length<p+1) return null; var g=0,l=0,i,ch;
+    for(i=1;i<=p;i++){ch=v[i]-v[i-1]; if(ch>0)g+=ch; else l-=ch;}
+    var ag=g/p, al=l/p;
+    for(i=p+1;i<v.length;i++){ch=v[i]-v[i-1]; ag=(ag*(p-1)+(ch>0?ch:0))/p; al=(al*(p-1)+(ch<0?-ch:0))/p;}
+    if(al===0) return 100; var rs=ag/al; return 100-100/(1+rs); }
+  function macd(v){ var f=12,s=26,sig=9; if(v.length<s+sig) return null; var ef=ema(v,f),es=ema(v,s),ml=[],i;
+    for(i=0;i<v.length;i++) ml.push(ef[i]-es[i]); var sl=ema(ml,sig); return ml[ml.length-1]-sl[sl.length-1]; }
+  function adx(h,l,c,p){ p=p||14; var n=c.length; if(n<p*2) return null;
+    var trs=[],pdm=[],mdm=[],i,up,dn,tr;
+    for(i=1;i<n;i++){ up=h[i]-h[i-1]; dn=l[i-1]-l[i];
+      pdm.push(up>dn&&up>0?up:0); mdm.push(dn>up&&dn>0?dn:0);
+      tr=Math.max(h[i]-l[i],Math.abs(h[i]-c[i-1]),Math.abs(l[i]-c[i-1])); trs.push(tr); }
+    function sm(a){ var o=[a.slice(0,p).reduce(function(x,y){return x+y;},0)]; for(var j=p;j<a.length;j++) o.push(o[o.length-1]-o[o.length-1]/p+a[j]); return o; }
+    var ts=sm(trs),ps=sm(pdm),ms=sm(mdm),dx=[];
+    for(i=0;i<ts.length;i++){ if(ts[i]===0) continue; var pdi=100*ps[i]/ts[i],mdi=100*ms[i]/ts[i],dd=pdi+mdi; if(dd===0) continue; dx.push(100*Math.abs(pdi-mdi)/dd); }
+    if(dx.length<p) return null; var a=dx.slice(0,p).reduce(function(x,y){return x+y;},0)/p;
+    for(i=p;i<dx.length;i++) a=(a*(p-1)+dx[i])/p; return a; }
+  function slopePct(s,lb){ lb=lb||5; if(s.length<lb+1||s[s.length-1-lb]===0) return null; return (s[s.length-1]-s[s.length-1-lb])/Math.abs(s[s.length-1-lb])*100; }
+  function whipsaw(c,es,bars){ bars=bars||15; var n=Math.min(bars,c.length,es.length); if(n<3) return 0;
+    var d=[],i; for(i=1;i<=n;i++) d.push(c[c.length-i]-es[es.length-i]); var cr=0;
+    for(i=0;i<d.length-1;i++) if((d[i]>0)!==(d[i+1]>0)) cr++; return cr; }
+  function smallCandles(h,l,rec,base){ rec=rec||5; base=base||30; if(h.length<base) return false;
+    var rng=[],i; for(i=0;i<h.length;i++) rng.push(h[i]-l[i]);
+    var ar=rng.slice(-rec).reduce(function(x,y){return x+y;},0)/rec, ab=rng.slice(-base).reduce(function(x,y){return x+y;},0)/base;
+    return ab>0 && ar<0.6*ab; }
+  function nearSupport(p,l,w,tol){ w=w||20; tol=tol||0.05; if(l.length<w) return false; var lo=Math.min.apply(null,l.slice(-w)); return lo>0&&(p-lo)/p*100<=tol; }
+  function nearResist(p,h,w,tol){ w=w||20; tol=tol||0.05; if(h.length<w) return false; var hi=Math.max.apply(null,h.slice(-w)); return hi>0&&(hi-p)/p*100<=tol; }
+
+  // ---------- analyse (mirrors qx_trend_bot.py) ----------
+  function analyse(o,h,l,c){
+    var price=c[c.length-1];
+    var e20s=ema(c,20), e50s=ema(c,50), e20=e20s[e20s.length-1], e50=e50s[e50s.length-1];
+    var r=rsi(c,14), rPrev=c.length>20?rsi(c.slice(0,-3),14):null, hist=macd(c), adxv=adx(h,l,c,14);
+    var s20=slopePct(e20s), s50=slopePct(e50s);
+    var gap=price?Math.abs(e20-e50)/price*100:0, whips=whipsaw(c,e20s);
+    var weak=adxv!==null&&adxv<20, flat=gap<0.02||(s20!==null&&Math.abs(s20)<0.005),
+        neutral=r!==null&&r>=45&&r<=55, whipy=whips>=4, tiny=smallCandles(h,l), sideways=weak||flat||neutral||whipy||tiny;
+    var rUp=r!==null&&r>50, rDn=r!==null&&r<50,
+        rImp=r!==null&&rPrev!==null&&r>rPrev, rFall=r!==null&&rPrev!==null&&r<rPrev,
+        eUp=s20!==null&&s20>0&&s50!==null&&s50>0, eDn=s20!==null&&s20<0&&s50!==null&&s50<0;
+    var bull=price>e20&&price>e50&&e20>e50&&eUp&&rUp, bear=price<e20&&price<e50&&e20<e50&&eDn&&rDn;
+    function C(ok,label){return {ok:ok,label:label};}
+    var bullList=[
+      C(price>e20&&price>e50,"Price above EMA20 & EMA50"),
+      C(e20>e50,"EMA20 above EMA50"),
+      C(eUp,"Both EMAs sloping up"),
+      C(rUp,r!==null?("RSI above 50 (RSI "+r.toFixed(0)+")"):"RSI above 50"),
+      C(rImp,"RSI momentum improving"),
+      C(nearSupport(price,l),"Near support (possible bounce)"),
+      C(!sideways,"Market not sideways")
+    ];
+    var bearList=[
+      C(price<e20&&price<e50,"Price below EMA20 & EMA50"),
+      C(e20<e50,"EMA20 below EMA50"),
+      C(eDn,"Both EMAs sloping down"),
+      C(rDn,r!==null?("RSI below 50 (RSI "+r.toFixed(0)+")"):"RSI below 50"),
+      C(rFall,"RSI momentum weakening"),
+      C(nearResist(price,h),"Near resistance (possible reject)"),
+      C(!sideways,"Market not sideways")
+    ];
+    var avoidList=[
+      C(flat,"EMAs flat"),
+      C(whipy,"Price crossing EMAs repeatedly ("+whips+"x)"),
+      C(neutral,"RSI around 50"),
+      C(tiny,"Candles small / overlapping"),
+      C(weak,adxv!==null?("Weak trend (ADX "+adxv.toFixed(0)+")"):"Weak trend (ADX)")
+    ];
+    var signal,strength="",list;
+    if(sideways||(!bull&&!bear)){ signal="HOLD"; list=avoidList; var fired=avoidList.filter(function(x){return x.ok;}); strength = fired.length?"Sideways / avoid conditions active":"Structure not aligned for a clean trend"; }
+    else if(bull){ var pb=bullList.filter(function(x){return x.ok;}).length; signal="UP"; list=bullList; strength=(pb>=6?"STRONG":"MODERATE")+" bullish · "+pb+"/7 conditions"; }
+    else { var pd=bearList.filter(function(x){return x.ok;}).length; signal="DOWN"; list=bearList; strength=(pd>=6?"STRONG":"MODERATE")+" bearish · "+pd+"/7 conditions"; }
+    return {signal:signal,strength:strength,price:price,e20:e20,e50:e50,rsi:r,adx:adxv,slope20:s20,whips:whips,list:list,sideways:sideways};
+  }
+
+  // ---------- render ----------
+  var verdict=document.getElementById("verdict"), badge=document.getElementById("badge"),
+      badgeText=document.getElementById("badgeText"), strengthEl=document.getElementById("strength"),
+      metricsEl=document.getElementById("metrics"), chkCard=document.getElementById("chkCard"), chkList=document.getElementById("chkList");
+  function fmt(x,d){ return x===null||x===undefined?"–":Number(x).toFixed(d===undefined?5:d); }
+  function render(res, metrics){
+    verdict.classList.add("show");
+    badge.className="badge "+res.signal;
+    badgeText.textContent = res.signal==="UP"?"UP · 2 min":res.signal==="DOWN"?"DOWN · 2 min":"HOLD · don't trade";
+    strengthEl.textContent=res.strength;
+    metricsEl.innerHTML="";
+    (metrics||[]).forEach(function(m){ var d=document.createElement("div"); d.className="metric"; d.innerHTML="<span>"+m[0]+"</span> "+m[1]; metricsEl.appendChild(d); });
+    chkCard.hidden=false; chkList.innerHTML="";
+    res.list.forEach(function(it){
+      var li=document.createElement("li");
+      var warnStyle = res.signal==="HOLD";
+      var cls = it.ok ? (warnStyle?"mark warn":"mark ok") : "mark no";
+      var sym = it.ok ? (warnStyle?"!":"✓") : "·";
+      li.innerHTML='<span class="'+cls+'">'+sym+'</span><span>'+it.label+'</span>';
+      chkList.appendChild(li);
+    });
+    verdict.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  // ---------- paste mode ----------
+  function parsePrices(text){
+    var o=[],h=[],l=[],c=[];
+    text.split(/\n/).forEach(function(line){
+      var nums=(line.match(/-?\d+(\.\d+)?/g)||[]).map(Number);
+      if(!nums.length) return;
+      if(nums.length>=4){ o.push(nums[0]);h.push(nums[1]);l.push(nums[2]);c.push(nums[3]); }
+      else { var v=nums[nums.length-1]; o.push(v);h.push(v);l.push(v);c.push(v); }
+    });
+    return {o:o,h:h,l:l,c:c};
+  }
+  document.getElementById("analyseBtn").addEventListener("click",function(){
+    var p=parsePrices(document.getElementById("prices").value);
+    if(p.c.length<30){ alert("Kam se kam ~30 values daalo (behtar ~60+). Abhi "+p.c.length+" mile."); return; }
+    var res=analyse(p.o,p.h,p.l,p.c);
+    render(res,[["px",fmt(res.price,5)],["EMA20",fmt(res.e20,5)],["EMA50",fmt(res.e50,5)],
+      ["RSI",fmt(res.rsi,0)],["ADX",fmt(res.adx,0)],["cross",res.whips+"x"]]);
+  });
+  document.getElementById("clearBtn").addEventListener("click",function(){
+    document.getElementById("prices").value=""; verdict.classList.remove("show"); chkCard.hidden=true;
+  });
+  document.getElementById("sampleBtn").addEventListener("click",function(){
+    // synthetic gentle uptrend with a little noise (for a quick demo of the UI)
+    var out=[],base=1.08000,i;
+    for(i=0;i<80;i++){ var drift=i*0.00018, wob=0.0004*Math.sin(i/2.3); var cl=base+drift+wob;
+      var op=cl-0.00006, hi=cl+0.00010, lo=cl-0.00010;
+      out.push([op,hi,lo,cl].map(function(x){return x.toFixed(5);}).join(" ")); }
+    document.getElementById("prices").value=out.join("\n");
+  });
+
+  // ---------- manual mode ----------
+  var groups=[
+    {key:"bull",title:"Bullish signs (UP)",items:[
+      {t:"Price EMA20 & EMA50 ke upar",core:1},
+      {t:"EMA20, EMA50 ke upar",core:1},
+      {t:"Dono EMAs upar ki taraf slope",core:1},
+      {t:"RSI 50 se upar",core:1},
+      {t:"RSI momentum improve ho raha",core:0},
+      {t:"Price support se bounce",core:0}
+    ]},
+    {key:"bear",title:"Bearish signs (DOWN)",items:[
+      {t:"Price EMA20 & EMA50 ke niche",core:1},
+      {t:"EMA20, EMA50 ke niche",core:1},
+      {t:"Dono EMAs niche ki taraf slope",core:1},
+      {t:"RSI 50 se niche",core:1},
+      {t:"RSI momentum weak ho raha",core:0},
+      {t:"Price resistance se reject",core:0}
+    ]},
+    {key:"avoid",title:"Avoid signs (HOLD)",items:[
+      {t:"EMAs flat hain",core:0},
+      {t:"Price EMAs ko baar-baar cross kar raha",core:0},
+      {t:"RSI ~50 ke aas-paas",core:0},
+      {t:"Candles chhoti / overlapping",core:0},
+      {t:"High-impact news ke aas-paas",core:0}
+    ]}
+  ];
+  var mg=document.getElementById("manualGroups");
+  groups.forEach(function(g){
+    var h=document.createElement("div"); h.className="grp-title"; h.textContent=g.title; mg.appendChild(h);
+    g.items.forEach(function(it,idx){
+      var lab=document.createElement("label"); lab.className="opt";
+      var cb=document.createElement("input"); cb.type="checkbox"; cb.dataset.grp=g.key; cb.dataset.core=it.core;
+      cb.addEventListener("change",computeManual);
+      var sp=document.createElement("span"); sp.textContent=it.t;
+      lab.appendChild(cb); lab.appendChild(sp); mg.appendChild(lab);
+    });
+  });
+  document.getElementById("manualNote").textContent="Jaise-jaise tick karoge, verdict niche update hoga. Koi bhi 'Avoid' sign ✓ ho to HOLD.";
+  function computeManual(){
+    var boxes=mg.querySelectorAll("input[type=checkbox]");
+    var bullCore=0,bullConf=0,bearCore=0,bearConf=0,avoid=0, bullList=[],bearList=[],avoidList=[];
+    boxes.forEach(function(b){
+      var g=b.dataset.grp, core=b.dataset.core==="1", ok=b.checked, label=b.nextSibling.textContent;
+      if(g==="bull"){ bullList.push({ok:ok,label:label}); if(ok){ if(core)bullCore++; else bullConf++; } }
+      else if(g==="bear"){ bearList.push({ok:ok,label:label}); if(ok){ if(core)bearCore++; else bearConf++; } }
+      else { avoidList.push({ok:ok,label:label}); if(ok) avoid++; }
+    });
+    var res={list:[]};
+    if(avoid>0){ res.signal="HOLD"; res.strength="Avoid conditions active — do NOT trade"; res.list=avoidList; }
+    else if(bullCore===4 && bearCore===0){ res.signal="UP"; var pb=bullCore+bullConf; res.strength=(pb>=5?"STRONG":"MODERATE")+" bullish · "+pb+"/6 conditions"; res.list=bullList; }
+    else if(bearCore===4 && bullCore===0){ res.signal="DOWN"; var pd=bearCore+bearConf; res.strength=(pd>=5?"STRONG":"MODERATE")+" bearish · "+pd+"/6 conditions"; res.list=bearList; }
+    else { res.signal="HOLD"; res.strength="Saare core conditions align nahi — abhi wait"; res.list=(bullCore>=bearCore?bullList:bearList); }
+    render(res,[]);
+  }
+
+  // ---------- tabs ----------
+  var tp=document.getElementById("tab-paste"), tm=document.getElementById("tab-manual"),
+      pp=document.getElementById("pane-paste"), pm=document.getElementById("pane-manual");
+  function select(which){
+    var paste=which==="paste";
+    tp.setAttribute("aria-selected",paste); tm.setAttribute("aria-selected",!paste);
+    pp.hidden=!paste; pm.hidden=paste;
+    verdict.classList.remove("show"); chkCard.hidden=true;
+    if(!paste) computeManual();
+  }
+  tp.addEventListener("click",function(){select("paste");});
+  tm.addEventListener("click",function(){select("manual");});
+  [tp,tm].forEach(function(el){ el.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); el.click(); } }); });
+})();
+</script>
+
+</body>
+</html>

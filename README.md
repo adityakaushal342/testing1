@@ -75,6 +75,23 @@ Use it as a **learning aid**: read the trend, compare it to what you see on the
 chart, and practise on a **demo account**. It is deliberately built to say
 "HOLD / don't trade" often, because most short windows are not tradeable.
 
+## Web version (`signal.html`)
+
+A single-file, offline web page that runs the **same trend engine in your
+browser** — no install, works on a phone. Open `signal.html` in any browser.
+
+Two modes:
+
+- **Paste Prices** — paste recent closing prices (or full OHLC lines) from your
+  chart; it computes EMA/RSI/MACD/ADX and shows a big **UP / DOWN / HOLD** verdict
+  with a pass/fail rule checklist.
+- **Manual Checklist** — tick what you see on your QX chart; it applies the same
+  bullish / bearish / avoid rules and tells you to trade or **HOLD**. This mode
+  also works for **OTC pairs**, since you read the chart yourself.
+
+Same honest limits apply: it is a learning aid, not a signal bot, and it cannot
+predict a 2-minute outcome.
+
 ## Disclaimer
 
 This project does not provide trading signals or financial advice. Any decision to
