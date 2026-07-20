@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>QX Broker — Strategy Analysis & Demo Journal (Learning Tool)</title>
+<script>try{var _t=localStorage.getItem("qx_theme_v1");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <style>
   :root {
     --bg: #f4f6fb;
@@ -24,9 +25,11 @@
     --avoid-soft: #efe8fb;
     --shadow: 0 1px 3px rgba(20,30,55,.08), 0 6px 20px rgba(20,30,55,.05);
     --radius: 14px;
+    color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root {
+      color-scheme: dark;
       --bg: #0e1320;
       --panel: #161d2e;
       --panel-2: #1d263a;
@@ -47,12 +50,14 @@
     }
   }
   :root[data-theme="light"] {
+    color-scheme: light;
     --bg: #f4f6fb; --panel:#fff; --panel-2:#f0f3fa; --border:#dfe4ee; --text:#1a2233; --muted:#5a6579;
     --accent:#2f6fed; --accent-soft:#e7effd; --up:#1a9e6b; --up-soft:#e2f6ee; --down:#d64545; --down-soft:#fbe6e6;
     --warn:#b8860b; --warn-soft:#fbf3dd; --avoid:#7a51c9; --avoid-soft:#efe8fb;
     --shadow:0 1px 3px rgba(20,30,55,.08),0 6px 20px rgba(20,30,55,.05);
   }
   :root[data-theme="dark"] {
+    color-scheme: dark;
     --bg:#0e1320; --panel:#161d2e; --panel-2:#1d263a; --border:#2a3346; --text:#e7ecf5; --muted:#9aa6bd;
     --accent:#5b8dff; --accent-soft:#1b2740; --up:#35c98a; --up-soft:#142a20; --down:#f2696a; --down-soft:#2c1a1c;
     --warn:#e0b64d; --warn-soft:#2c2716; --avoid:#b492f0; --avoid-soft:#241d38;
@@ -105,7 +110,7 @@
 
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  @media (max-width: 720px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
   @media (max-width: 720px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
 
   .ind {
@@ -208,6 +213,7 @@
       <li>Koi bhi indicator combo 2-min expiry par consistent accuracy <strong>guarantee nahi</strong> karta. Yeh tool sirf analysis ko organize karta hai — yeh tumhare liye trade decide nahi karta.</li>
       <li><strong>20 demo trades ek chhota sample hai</strong> — luck se accha result aa sakta hai. Isse yeh proof nahi hota ki strategy real me chalegi (neeche ki maths dekho).</li>
       <li>Demo aur real account alag hote hain: real me emotions, execution aur asli paisa involved hota hai.</li>
+      <li><strong>Regulatory / legal risk:</strong> Kai deshon me retail binary options <strong>regulated nahi</strong> ya <strong>banned</strong> hain (jaise UK/EU me FCA aur ESMA ne retail ke liye ban kiya hai), aur bahut brokers offshore/unregulated hote hain. Apne region ke rules khud check karo — aur samjho ki aise brokers se paisa <strong>withdraw</strong> karna ya dispute karna mushkil ho sakta hai, chahe tum jeet bhi jao.</li>
       <li>Yeh page educational hai. Real paisa lagane ka faisla poori tarah tumhara hai — main uske liye "haan/na" nahi keh sakta. Better: pehle skill build karo, risk sirf utna lo jo lose karne ka dar na ho.</li>
     </ul>
   </div>
@@ -416,6 +422,7 @@
   "use strict";
   var KEY = "qx_demo_journal_v1";
   var PAYOUT_KEY = "qx_payout_v1";
+  var THEME_KEY = "qx_theme_v1";
 
   // ---------- Theme ----------
   var themeBtn = document.getElementById("themeBtn");
@@ -424,6 +431,7 @@
     var cur = root.getAttribute("data-theme");
     var next = cur === "dark" ? "light" : (cur === "light" ? "dark" : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark"));
     root.setAttribute("data-theme", next);
+    try { localStorage.setItem(THEME_KEY, next); } catch(e){}
   });
 
   // ---------- Checklist / bias ----------
@@ -553,12 +561,12 @@
     body.innerHTML = "";
     list.forEach(function(t, i){
       var tr = document.createElement("tr");
-      var dirPill = '<span class="pill '+(t.dir==="UP"?"up":"down")+'">'+t.dir+'</span>';
+      var dirPill = '<span class="pill '+(t.dir==="UP"?"up":"down")+'">'+esc(String(t.dir))+'</span>';
       tr.innerHTML = '<td>'+(i+1)+'</td>'
         + '<td>'+esc(t.asset)+'</td>'
         + '<td>'+dirPill+'</td>'
-        + '<td>'+t.stake+'</td>'
-        + '<td class="'+(t.result==="WIN"?"win":"loss")+'">'+t.result+'</td>'
+        + '<td>'+esc(String(t.stake))+'</td>'
+        + '<td class="'+(t.result==="WIN"?"win":"loss")+'">'+esc(String(t.result))+'</td>'
         + '<td>'+esc(t.setup||"—")+'</td>'
         + '<td>'+esc(t.notes||"—")+'</td>'
         + '<td><button class="del-x" data-i="'+i+'" title="Delete">✕</button></td>';
@@ -589,6 +597,7 @@
     if (total === 0){
       document.getElementById("stWinRate").textContent = "–";
       document.getElementById("stExp").textContent = "–";
+      document.getElementById("stExpTile").classList.remove("good","bad");
       document.getElementById("stPnl").textContent = "0";
       document.getElementById("verdictBox").innerHTML = "";
       return;
@@ -604,7 +613,7 @@
     expEl.textContent = (exp>=0?"+":"") + (exp*100).toFixed(1) + "%";
     var expTile = document.getElementById("stExpTile");
     expTile.classList.remove("good","bad");
-    expTile.classList.add(exp>=0 ? "good" : "bad");
+    expTile.classList.add(exp>0 ? "good" : "bad");
 
     // Actual demo P/L in units
     var pnl = 0;
@@ -628,7 +637,7 @@
       html = '<div class="verdict '+cls+'"><h3>'+(beatsBE ? "🟡" : "🔴")+' 20 demo trades complete — reality check</h3>';
       html += '<p>Tumhara demo win-rate <strong>'+(wr*100).toFixed(1)+'%</strong> hai. Is payout par break-even ke liye <strong>'+(breakeven*100).toFixed(1)+'%</strong> chahiye.</p>';
       if (beatsBE){
-        html += '<p>Tum break-even se upar ho — <strong>par ruko</strong>. 20 trades me itna result sirf variance/luck bhi ho sakta hai. Statistically confident hone ke liye yeh sample bahut chhota hai. Real paisa lagane se pehle: (1) aur 80–100+ demo trades karo, (2) dekho win-rate tikta hai ya nahi, (3) sirf utna hi risk lo jo lose karne ka dukh na ho.</p>';
+        html += '<p>Tum break-even se upar ho — <strong>par ruko</strong>. Yeh result real paisa lagane ka signal <strong>bilkul nahi</strong> hai. 20 trades statistically kaafi nahi — itna accha result sirf variance/luck bhi ho sakta hai. Sahi tarika: aur 80–100+ demo trades log karo aur dekho win-rate tikta hai ya nahi. Real trading high-risk hai aur demo ka result real profit guarantee nahi karta — woh faisla poori tarah tumhara hai.</p>';
       } else {
         html += '<p>Tum break-even se <strong>neeche</strong> ho — matlab is setup par abhi tak edge nahi hai. Yeh strong signal hai ki real paisa <strong>nahi</strong> lagana chahiye. Pehle strategy refine karo aur dobara demo par test karo.</p>';
       }
@@ -662,8 +671,26 @@
     r.onload = function(){
       try {
         var arr = JSON.parse(r.result);
-        if (Array.isArray(arr)){ save(arr); render(); }
-        else alert("Invalid file format.");
+        if (!Array.isArray(arr)){ alert("Invalid file format."); return; }
+        var clean = [], bad = 0;
+        arr.forEach(function(t){
+          if (!t || typeof t !== "object" || Array.isArray(t)){ bad++; return; }
+          var result = String(t.result || "").toUpperCase();
+          if (result !== "WIN" && result !== "LOSS"){ bad++; return; }
+          var dir = String(t.dir || "").toUpperCase();
+          if (dir !== "UP" && dir !== "DOWN") dir = "UP";
+          clean.push({
+            asset: String(t.asset || "—").slice(0, 40),
+            dir: dir,
+            stake: Number(t.stake) || 0,
+            result: result,
+            setup: String(t.setup || "").slice(0, 200),
+            notes: String(t.notes || "").slice(0, 500)
+          });
+        });
+        if (!clean.length){ alert("Is file me koi valid trade nahi mila."); return; }
+        save(clean); render();
+        if (bad) alert(bad + " invalid entry skip ki gayi. " + clean.length + " valid trades import hue.");
       } catch(err){ alert("File padh nahi paaya: " + err.message); }
     };
     r.readAsText(f);
