@@ -41,17 +41,16 @@ import requests
 # ---------------------------------------------------------------------------
 # Pairs to scan. Yahoo Finance FX symbols look like "EURUSD=X".
 # ---------------------------------------------------------------------------
+# The real (non-OTC) major pairs offered on QX Broker. These have public live
+# data during market hours; OTC pairs do not and are intentionally excluded.
 DEFAULT_PAIRS = {
     "EUR/USD": "EURUSD=X",
     "GBP/USD": "GBPUSD=X",
     "USD/JPY": "USDJPY=X",
+    "USD/CHF": "USDCHF=X",
     "AUD/USD": "AUDUSD=X",
     "USD/CAD": "USDCAD=X",
-    "USD/CHF": "USDCHF=X",
     "NZD/USD": "NZDUSD=X",
-    "EUR/JPY": "EURJPY=X",
-    "GBP/JPY": "GBPJPY=X",
-    "EUR/GBP": "EURGBP=X",
 }
 
 YF_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
@@ -376,6 +375,9 @@ def badge(signal: str, use_color: bool) -> str:
 def scan(pairs: dict, verbose: bool, use_color: bool) -> None:
     print(f"\n{BOLD}Pair       Signal    Price       RSI   ADX{RESET}")
     print("-" * 46)
+    actionable: list[str] = []
+    holds = 0
+    errors = 0
     for name, sym in pairs.items():
         try:
             candles = fetch_candles(sym)
@@ -384,6 +386,10 @@ def scan(pairs: dict, verbose: bool, use_color: bool) -> None:
             adx_s = f"{a['adx']:.0f}" if a["adx"] is not None else " -"
             print(f"{name:<10} {badge(a['signal'], use_color)}  "
                   f"{a['price']:<10.5f}  {rsi_s:>3}  {adx_s:>3}")
+            if a["signal"] in ("UP", "DOWN"):
+                actionable.append(f"{name} {a['signal']}")
+            else:
+                holds += 1
             if verbose:
                 for reason in a["reasons"]:
                     print(f"             · {reason}")
@@ -391,7 +397,20 @@ def scan(pairs: dict, verbose: bool, use_color: bool) -> None:
                     mark = "✓" if ok else "✗"
                     print(f"                {mark} {label}")
         except Exception as e:  # noqa: BLE001 — keep scanning other pairs
+            errors += 1
             print(f"{name:<10} {badge('ERR', use_color)}  ({type(e).__name__}: {e})")
+
+    # summary line — what is worth looking at right now
+    print("-" * 46)
+    if actionable:
+        print(f"{BOLD}Look at:{RESET} " + "  ·  ".join(actionable)
+              + f"   ({holds} on HOLD)")
+    else:
+        print(f"{BOLD}No clean trend right now{RESET} — all {holds} pairs on HOLD."
+              " Better to wait.")
+    if errors:
+        print(f"({errors} pair(s) could not be fetched — market may be closed"
+              " or offline.)")
     print()
 
 

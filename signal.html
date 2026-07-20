@@ -122,6 +122,19 @@
   @keyframes pop{from{transform:scale(.94);opacity:.4}to{transform:scale(1);opacity:1}}
 </style>
 
+<datalist id="pairList">
+  <option value="EUR/USD"></option>
+  <option value="GBP/USD"></option>
+  <option value="USD/JPY"></option>
+  <option value="USD/CHF"></option>
+  <option value="AUD/USD"></option>
+  <option value="USD/CAD"></option>
+  <option value="NZD/USD"></option>
+  <option value="EUR/USD OTC"></option>
+  <option value="GBP/USD OTC"></option>
+  <option value="USD/JPY OTC"></option>
+</datalist>
+
 <div class="wrap">
   <header class="top">
     <div>
@@ -147,8 +160,8 @@
     <div class="card">
       <h2>Recent prices daalo</h2>
       <div class="pairfield">
-        <label class="fld" for="pairPaste">Pair ka naam (optional)</label>
-        <input type="text" id="pairPaste" placeholder="jaise EUR/USD" autocomplete="off" />
+        <label class="fld" for="pairPaste">Pair chuno ya likho</label>
+        <input type="text" id="pairPaste" list="pairList" placeholder="jaise EUR/USD" autocomplete="off" />
       </div>
       <label class="fld" for="prices">Chart se recent closing prices (purane se naye tak, upar se niche).
         Ek line mein ek number, ya OHLC (4 number: open high low close).</label>
@@ -169,8 +182,8 @@
       <h2>Chart pe jo dikh raha hai woh tick karo</h2>
       <p class="sub" style="margin:0 0 10px">Ye mode <b>OTC pairs pe bhi</b> chalta hai — aap apni aankh se chart padho.</p>
       <div class="pairfield">
-        <label class="fld" for="pairManual">Pair ka naam (optional)</label>
-        <input type="text" id="pairManual" placeholder="jaise EUR/USD OTC" autocomplete="off" />
+        <label class="fld" for="pairManual">Pair chuno ya likho</label>
+        <input type="text" id="pairManual" list="pairList" placeholder="jaise EUR/USD ya EUR/USD OTC" autocomplete="off" />
       </div>
       <div id="manualGroups"></div>
       <div class="note" id="manualNote"></div>
