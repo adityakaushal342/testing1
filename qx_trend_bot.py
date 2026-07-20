@@ -181,61 +181,161 @@ def fetch_candles(symbol: str, interval: str = "1m", rng: str = "1d"):
 
 
 # ---------------------------------------------------------------------------
-# Decision logic
+# Helper measures for the strategy checklist
+# ---------------------------------------------------------------------------
+def slope_pct(series: list[float], lookback: int = 5) -> Optional[float]:
+    """Percent change of a series over the last `lookback` bars (slope proxy)."""
+    if len(series) < lookback + 1 or series[-1 - lookback] == 0:
+        return None
+    return (series[-1] - series[-1 - lookback]) / abs(series[-1 - lookback]) * 100
+
+
+def whipsaw_count(close: list[float], ema_series: list[float], bars: int = 15) -> int:
+    """How many times price crossed the EMA in the last `bars` bars."""
+    n = min(bars, len(close), len(ema_series))
+    if n < 3:
+        return 0
+    diffs = [close[-i] - ema_series[-i] for i in range(1, n + 1)]
+    crosses = 0
+    for a, b in zip(diffs, diffs[1:]):
+        if (a > 0) != (b > 0):  # sign flip = a cross
+            crosses += 1
+    return crosses
+
+
+def small_overlapping(high: list[float], low: list[float],
+                      recent: int = 5, base: int = 30) -> bool:
+    """True if the last few candles are unusually small (choppy/overlapping)."""
+    if len(high) < base:
+        return False
+    rng = [h - l for h, l in zip(high, low)]
+    avg_recent = sum(rng[-recent:]) / recent
+    avg_base = sum(rng[-base:]) / base
+    return avg_base > 0 and avg_recent < 0.6 * avg_base
+
+
+def near_support(price: float, low: list[float], window: int = 20,
+                 tol_pct: float = 0.05) -> bool:
+    """Price sitting close to the recent swing low (a support area)."""
+    if len(low) < window:
+        return False
+    recent_low = min(low[-window:])
+    return recent_low > 0 and (price - recent_low) / price * 100 <= tol_pct
+
+
+def near_resistance(price: float, high: list[float], window: int = 20,
+                    tol_pct: float = 0.05) -> bool:
+    """Price sitting close to the recent swing high (a resistance area)."""
+    if len(high) < window:
+        return False
+    recent_high = max(high[-window:])
+    return recent_high > 0 and (recent_high - price) / price * 100 <= tol_pct
+
+
+# ---------------------------------------------------------------------------
+# Decision logic — mirrors the manual strategy checklist
 # ---------------------------------------------------------------------------
 def analyse(candles: dict) -> dict:
-    """Turn raw candles into a signal + human-readable reasons."""
+    """Turn raw candles into a signal + a rule-by-rule checklist."""
     close = candles["close"]
     high = candles["high"]
     low = candles["low"]
     price = close[-1]
 
-    ema20 = ema(close, 20)[-1]
-    ema50 = ema(close, 50)[-1]
+    ema20_series = ema(close, 20)
+    ema50_series = ema(close, 50)
+    ema20 = ema20_series[-1]
+    ema50 = ema50_series[-1]
     r = rsi(close, 14)
+    r_prev = rsi(close[:-3], 14) if len(close) > 20 else None
     _, _, hist = macd(close)
     adx_val = adx(high, low, close, 14)
 
-    reasons: list[str] = []
-
-    # EMA separation as a % of price — flat EMAs => no trend
+    ema20_slope = slope_pct(ema20_series)
+    ema50_slope = slope_pct(ema50_series)
     ema_gap_pct = abs(ema20 - ema50) / price * 100 if price else 0.0
+    whips = whipsaw_count(close, ema20_series)
 
-    # --- trend strength gate (ADX) ---
+    # --- "avoid / no-trade" conditions ---
     weak_trend = adx_val is not None and adx_val < 20
-    flat_emas = ema_gap_pct < 0.02  # EMAs basically on top of each other
+    flat_emas = ema_gap_pct < 0.02 or (
+        ema20_slope is not None and abs(ema20_slope) < 0.005)
     neutral_rsi = r is not None and 45 <= r <= 55
+    whipsawing = whips >= 4
+    tiny_candles = small_overlapping(high, low)
+    sideways = weak_trend or flat_emas or neutral_rsi or whipsawing or tiny_candles
 
-    if weak_trend:
-        reasons.append(f"ADX {adx_val:.0f} < 20 → trend weak (choppy)")
-    if flat_emas:
-        reasons.append("EMA20 and EMA50 almost flat/overlapping → no clear trend")
-    if neutral_rsi:
-        reasons.append(f"RSI {r:.0f} in 45-55 → indecision")
+    # --- momentum / structure helpers ---
+    rsi_up = r is not None and r > 50
+    rsi_down = r is not None and r < 50
+    rsi_improving = (r is not None and r_prev is not None and r > r_prev)
+    rsi_falling = (r is not None and r_prev is not None and r < r_prev)
+    emas_up = (ema20_slope is not None and ema20_slope > 0
+               and ema50_slope is not None and ema50_slope > 0)
+    emas_down = (ema20_slope is not None and ema20_slope < 0
+                 and ema50_slope is not None and ema50_slope < 0)
 
-    bullish = ema20 > ema50 and price > ema20 and (hist is None or hist > 0)
-    bearish = ema20 < ema50 and price < ema20 and (hist is None or hist < 0)
+    # --- strong bullish / bearish, per the manual rules ---
+    bull_core = (price > ema20 and price > ema50 and ema20 > ema50
+                 and emas_up and rsi_up)
+    bear_core = (price < ema20 and price < ema50 and ema20 < ema50
+                 and emas_down and rsi_down)
 
-    # HOLD if the market is sideways / signals disagree
-    if weak_trend or flat_emas or neutral_rsi or (not bullish and not bearish):
+    # Build a human-readable checklist (label, passed?)
+    def chk(passed: bool, label: str) -> tuple:
+        return (passed, label)
+
+    bull_list = [
+        chk(price > ema20 and price > ema50, "Price above EMA20 & EMA50"),
+        chk(ema20 > ema50, "EMA20 above EMA50"),
+        chk(emas_up, "Both EMAs sloping up"),
+        chk(rsi_up, f"RSI above 50 (RSI {r:.0f})" if r is not None else "RSI above 50"),
+        chk(rsi_improving, "RSI momentum improving"),
+        chk(near_support(price, low), "Near a support area (possible bounce)"),
+        chk(not sideways, "Market not sideways"),
+    ]
+    bear_list = [
+        chk(price < ema20 and price < ema50, "Price below EMA20 & EMA50"),
+        chk(ema20 < ema50, "EMA20 below EMA50"),
+        chk(emas_down, "Both EMAs sloping down"),
+        chk(rsi_down, f"RSI below 50 (RSI {r:.0f})" if r is not None else "RSI below 50"),
+        chk(rsi_falling, "RSI momentum weakening"),
+        chk(near_resistance(price, high), "Near a resistance area (possible reject)"),
+        chk(not sideways, "Market not sideways"),
+    ]
+    avoid_list = [
+        chk(flat_emas, "EMAs flat"),
+        chk(whipsawing, f"Price crossing EMAs repeatedly ({whips}x)"),
+        chk(neutral_rsi, "RSI around 50"),
+        chk(tiny_candles, "Candles small / overlapping"),
+        chk(weak_trend, f"Weak trend (ADX {adx_val:.0f})" if adx_val is not None else "Weak trend (ADX)"),
+    ]
+
+    reasons: list[str] = []
+    if sideways or (not bull_core and not bear_core):
         signal = "HOLD"
-        if not reasons:
-            reasons.append("EMA / MACD signals disagree → unclear direction")
-        reasons.append("→ Sideways/unclear: do NOT trade, watch why it is ranging")
-    elif bullish:
+        checklist = avoid_list
+        fired = [lbl for ok, lbl in avoid_list if ok]
+        if fired:
+            reasons.extend(fired)
+        else:
+            reasons.append("EMA / RSI structure not aligned for a clean trend")
+        reasons.append("→ Sideways/unclear: do NOT trade, study why it is ranging")
+    elif bull_core:
+        # confidence: how many of the bullish confirmations are green
+        passed = sum(1 for ok, _ in bull_list if ok)
         signal = "UP"
-        reasons.append(f"Price > EMA20 > EMA50 and MACD momentum up")
-        if adx_val is not None:
-            reasons.append(f"ADX {adx_val:.0f} → trend has strength")
-        if r is not None:
-            reasons.append(f"RSI {r:.0f}")
-    else:  # bearish
+        checklist = bull_list
+        strength = "STRONG" if passed >= 6 else "MODERATE"
+        reasons.append(f"{strength} bullish: {passed}/{len(bull_list)} conditions met")
+    else:  # bear_core
+        passed = sum(1 for ok, _ in bear_list if ok)
         signal = "DOWN"
-        reasons.append(f"Price < EMA20 < EMA50 and MACD momentum down")
-        if adx_val is not None:
-            reasons.append(f"ADX {adx_val:.0f} → trend has strength")
-        if r is not None:
-            reasons.append(f"RSI {r:.0f}")
+        checklist = bear_list
+        strength = "STRONG" if passed >= 6 else "MODERATE"
+        reasons.append(f"{strength} bearish: {passed}/{len(bear_list)} conditions met")
+
+    reasons.append("⚠ Check for high-impact news before any trade (tool can't see news)")
 
     return {
         "signal": signal,
@@ -245,7 +345,11 @@ def analyse(candles: dict) -> dict:
         "rsi": r,
         "adx": adx_val,
         "macd_hist": hist,
+        "ema20_slope": ema20_slope,
+        "ema50_slope": ema50_slope,
+        "whipsaw": whips,
         "reasons": reasons,
+        "checklist": checklist,
     }
 
 
@@ -283,6 +387,9 @@ def scan(pairs: dict, verbose: bool, use_color: bool) -> None:
             if verbose:
                 for reason in a["reasons"]:
                     print(f"             · {reason}")
+                for ok, label in a.get("checklist", []):
+                    mark = "✓" if ok else "✗"
+                    print(f"                {mark} {label}")
         except Exception as e:  # noqa: BLE001 — keep scanning other pairs
             print(f"{name:<10} {badge('ERR', use_color)}  ({type(e).__name__}: {e})")
     print()
