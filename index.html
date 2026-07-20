@@ -120,6 +120,20 @@
   .ind h3 { color: var(--accent); }
   .ind p { font-size: .88rem; color: var(--muted); margin: 0; }
 
+  .ref { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .ref h3 { margin-bottom: 8px; }
+  .ref ul { margin: 0; padding-left: 18px; font-size: .88rem; }
+  .ref ul li { margin-bottom: 5px; }
+  .ref.buy { border-left: 4px solid var(--up); }
+  .ref.buy h3 { color: var(--up); }
+  .ref.sell { border-left: 4px solid var(--down); }
+  .ref.sell h3 { color: var(--down); }
+  .ref.avoid { border-left: 4px solid var(--avoid); }
+  .ref.avoid h3 { color: var(--avoid); }
+  .avoid-grid { columns: 2; margin: 0; padding-left: 18px; font-size: .88rem; }
+  .avoid-grid li { margin-bottom: 5px; }
+  @media (max-width: 720px){ .avoid-grid { columns: 1; } }
+
   label.field { display: block; margin-bottom: 12px; font-size: .85rem; color: var(--muted); }
   label.field span.lbl { display: block; margin-bottom: 5px; font-weight: 600; color: var(--text); }
   select, input[type="text"], input[type="number"], textarea {
@@ -244,9 +258,50 @@
     </p>
   </section>
 
+  <!-- REFERENCE -->
+  <section class="card">
+    <h2>2 · Reference — strong setups &amp; avoid conditions</h2>
+    <p class="sub">Yeh conditions batati hain ki analysis <strong>kab zyada strong</strong> hoti hai. Yeh guaranteed entry signals <strong>nahi</strong> hain — sab align hone par bhi outcome guaranteed nahi hota. Inhi conditions ko neeche wali checklist (section 3) verify karti hai. 2-min expiry sochne se pehle: pehle demo par journal karo.</p>
+    <div class="grid-2" style="align-items:start">
+      <div class="ref buy">
+        <h3>📈 Strong bullish analysis · UP context</h3>
+        <ul>
+          <li>Price EMA 20 aur EMA 50 <strong>dono ke upar</strong>.</li>
+          <li>EMA 20, EMA 50 ke <strong>upar</strong>.</li>
+          <li>Dono EMAs <strong>upward slope</strong> me.</li>
+          <li>RSI 50 se <strong>upar</strong>, momentum improve karta hua.</li>
+          <li>Price kisi <strong>support</strong> area se bounce dikhaye.</li>
+          <li>Market <strong>sideways na</strong> ho.</li>
+        </ul>
+      </div>
+      <div class="ref sell">
+        <h3>📉 Strong bearish analysis · DOWN context</h3>
+        <ul>
+          <li>Price EMA 20 aur EMA 50 <strong>dono ke niche</strong>.</li>
+          <li>EMA 20, EMA 50 ke <strong>niche</strong>.</li>
+          <li>Dono EMAs <strong>downward slope</strong> me.</li>
+          <li>RSI 50 se <strong>niche</strong>.</li>
+          <li>Price kisi <strong>resistance</strong> area se reject ho.</li>
+          <li>Market <strong>sideways na</strong> ho.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ref avoid" style="margin-top:14px">
+      <h3>🚫 Trade avoid karne ke signs — in me skip behtar</h3>
+      <ul class="avoid-grid">
+        <li>EMAs <strong>flat</strong> hain.</li>
+        <li>Price EMAs ko <strong>baar-baar cross</strong> kar raha.</li>
+        <li>RSI lagbhag <strong>50 ke aas-paas</strong> (45–55).</li>
+        <li>Candles <strong>chhoti aur overlapping</strong>.</li>
+        <li><strong>High-impact news</strong> ke aas-paas.</li>
+      </ul>
+    </div>
+    <p class="disclaimer-inline">Yaad rahe: yeh analysis-strength ke signs hain, "abhi trade karo" wale signals nahi. Koi accuracy % nahi — kyunki 2-min binary par koi bharosemand accuracy hoti hi nahi. Sab align ho tab bhi outcome guaranteed nahi.</p>
+  </section>
+
   <!-- CHECKLIST -->
   <section class="card">
-    <h2>2 · Analysis Checklist — apni observation daalo</h2>
+    <h2>3 · Analysis Checklist — apni observation daalo</h2>
     <p class="sub">Chart par abhi jo dikh raha hai wo select karo. Tool tumhe ek <strong>analysis bias</strong> dikhayega — yeh ek "observation" hai, guaranteed entry signal <strong>nahi</strong>. Iska sabse bada faayda: yeh tumhe <strong>kab NA trade karna</strong> (avoid conditions) clearly batata hai.</p>
     <div class="grid-2">
       <div>
@@ -313,7 +368,7 @@
 
   <!-- JOURNAL -->
   <section class="card">
-    <h2>3 · Demo Trade Journal — 20 trades log karo</h2>
+    <h2>4 · Demo Trade Journal — 20 trades log karo</h2>
     <p class="sub">Har demo trade ke baad yahan entry karo. Data tumhare browser me (localStorage) save hota hai — koi server nahi. Isi se neeche tumhare asli numbers banenge.</p>
     <div class="grid-2">
       <div>
@@ -359,7 +414,7 @@
 
   <!-- STATS -->
   <section class="card">
-    <h2>4 · Tumhare Numbers — honest maths</h2>
+    <h2>5 · Tumhare Numbers — honest maths</h2>
     <div class="row" style="margin-bottom:14px">
       <label class="field" style="margin:0; max-width:260px">
         <span class="lbl">QX payout % (win par kitna profit?)</span>
@@ -388,7 +443,7 @@
 
   <!-- LEARN -->
   <section class="card">
-    <h2>5 · Seekhne ke liye (yahi long-term me kaam aata hai)</h2>
+    <h2>6 · Seekhne ke liye (yahi long-term me kaam aata hai)</h2>
     <details><summary>Trend kaise identify karein?</summary>
       <p>Uptrend: price higher-highs &amp; higher-lows bana raha ho, EMA 20 &gt; EMA 50, dono up-slope. Downtrend iska ulta. Agar EMAs aapas me chipke hain aur price dono ko baar-baar cross kar raha hai — wo trend nahi, range hai.</p>
     </details>
