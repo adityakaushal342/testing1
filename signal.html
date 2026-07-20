@@ -80,6 +80,10 @@
   /* verdict */
   .verdict{display:none;text-align:center;padding:22px 16px}
   .verdict.show{display:block}
+  .pairname{font-size:1rem;font-weight:700;letter-spacing:.02em;color:var(--muted);margin:0 0 12px;
+    text-transform:uppercase}
+  .pairname:empty{display:none}
+  .pairfield{margin-bottom:12px}
   .badge{display:inline-flex;align-items:center;gap:10px;font-size:1.9rem;font-weight:800;
     letter-spacing:-.02em;padding:12px 26px;border-radius:14px;border:1px solid transparent}
   .badge .dot{width:14px;height:14px;border-radius:50%}
@@ -142,9 +146,13 @@
   <section id="pane-paste">
     <div class="card">
       <h2>Recent prices daalo</h2>
+      <div class="pairfield">
+        <label class="fld" for="pairPaste">Pair ka naam (optional)</label>
+        <input type="text" id="pairPaste" placeholder="jaise EUR/USD" autocomplete="off" />
+      </div>
       <label class="fld" for="prices">Chart se recent closing prices (purane se naye tak, upar se niche).
         Ek line mein ek number, ya OHLC (4 number: open high low close).</label>
-      <textarea id="prices" spellcheck="false" placeholder="1.08420&#10;1.08435&#10;1.08460&#10;1.08455&#10;… (kam se kam ~60 values behtar)"></textarea>
+      <textarea id="prices" spellcheck="false" placeholder="Yahan apne prices paste karo (ye box abhi khaali hai).&#10;Ek line = ek number, purane se naye tak. Example:&#10;1.08420&#10;1.08435&#10;1.08460&#10;… (kam se kam ~30, behtar ~60+)&#10;&#10;Ya bas 'Sample bhar do' dabao."></textarea>
       <div class="row">
         <button class="btn" id="analyseBtn" type="button">Analyse</button>
         <button class="btn ghost" id="sampleBtn" type="button">Sample bhar do</button>
@@ -160,6 +168,10 @@
     <div class="card">
       <h2>Chart pe jo dikh raha hai woh tick karo</h2>
       <p class="sub" style="margin:0 0 10px">Ye mode <b>OTC pairs pe bhi</b> chalta hai — aap apni aankh se chart padho.</p>
+      <div class="pairfield">
+        <label class="fld" for="pairManual">Pair ka naam (optional)</label>
+        <input type="text" id="pairManual" placeholder="jaise EUR/USD OTC" autocomplete="off" />
+      </div>
       <div id="manualGroups"></div>
       <div class="note" id="manualNote"></div>
     </div>
@@ -167,6 +179,7 @@
 
   <!-- VERDICT (shared) -->
   <div class="card verdict" id="verdict">
+    <div class="pairname" id="pairName"></div>
     <div class="badge HOLD" id="badge"><span class="dot"></span><span id="badgeText">HOLD</span></div>
     <div class="strength" id="strength"></div>
     <div class="metrics" id="metrics"></div>
@@ -274,10 +287,12 @@
   // ---------- render ----------
   var verdict=document.getElementById("verdict"), badge=document.getElementById("badge"),
       badgeText=document.getElementById("badgeText"), strengthEl=document.getElementById("strength"),
-      metricsEl=document.getElementById("metrics"), chkCard=document.getElementById("chkCard"), chkList=document.getElementById("chkList");
+      metricsEl=document.getElementById("metrics"), chkCard=document.getElementById("chkCard"), chkList=document.getElementById("chkList"),
+      pairNameEl=document.getElementById("pairName");
   function fmt(x,d){ return x===null||x===undefined?"–":Number(x).toFixed(d===undefined?5:d); }
-  function render(res, metrics){
+  function render(res, metrics, pairName){
     verdict.classList.add("show");
+    pairNameEl.textContent = (pairName||"").trim();
     badge.className="badge "+res.signal;
     badgeText.textContent = res.signal==="UP"?"UP · 2 min":res.signal==="DOWN"?"DOWN · 2 min":"HOLD · don't trade";
     strengthEl.textContent=res.strength;
@@ -311,7 +326,8 @@
     if(p.c.length<30){ alert("Kam se kam ~30 values daalo (behtar ~60+). Abhi "+p.c.length+" mile."); return; }
     var res=analyse(p.o,p.h,p.l,p.c);
     render(res,[["px",fmt(res.price,5)],["EMA20",fmt(res.e20,5)],["EMA50",fmt(res.e50,5)],
-      ["RSI",fmt(res.rsi,0)],["ADX",fmt(res.adx,0)],["cross",res.whips+"x"]]);
+      ["RSI",fmt(res.rsi,0)],["ADX",fmt(res.adx,0)],["cross",res.whips+"x"]],
+      document.getElementById("pairPaste").value);
   });
   document.getElementById("clearBtn").addEventListener("click",function(){
     document.getElementById("prices").value=""; verdict.classList.remove("show"); chkCard.hidden=true;
@@ -377,7 +393,7 @@
     else if(bullCore===4 && bearCore===0){ res.signal="UP"; var pb=bullCore+bullConf; res.strength=(pb>=5?"STRONG":"MODERATE")+" bullish · "+pb+"/6 conditions"; res.list=bullList; }
     else if(bearCore===4 && bullCore===0){ res.signal="DOWN"; var pd=bearCore+bearConf; res.strength=(pd>=5?"STRONG":"MODERATE")+" bearish · "+pd+"/6 conditions"; res.list=bearList; }
     else { res.signal="HOLD"; res.strength="Saare core conditions align nahi — abhi wait"; res.list=(bullCore>=bearCore?bullList:bearList); }
-    render(res,[]);
+    render(res,[],document.getElementById("pairManual").value);
   }
 
   // ---------- tabs ----------
