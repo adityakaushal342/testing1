@@ -1082,7 +1082,7 @@
     sel.innerHTML = INSTRUMENTS.map(function (i) { return "<option value='" + i.sym + "'>" + i.sym + " · " + i.ex + "</option>"; }).join("");
     sel.value = selectedSym;
     document.getElementById("journalNotes").value = state.notes;
-    document.getElementById("setEmail").textContent = localStorage.getItem("ts_app_session") || CREDS.email;
+    try { document.getElementById("setEmail").textContent = localStorage.getItem("ts_app_session") || CREDS.email; } catch (e) {}
 
     // seed AI greeting
     pushBubble("Namaste Ali! 👋 Main aapka <b>AI Trading Coach</b> hoon, live market se connected. Main aapke liye trade bhi <b>predict karke le sakta hoon</b> — SL aur TP compulsory set honge. Try karo: <b>\"AI trade lo\"</b> 🎯 ya <b>\"EMA Strategy banao\"</b>", "ai");
@@ -1215,20 +1215,20 @@
 
   // ===================== AUTH =====================
   function doLogin() { document.body.classList.add("authed"); requestAnimationFrame(drawCharts); }
-  function logout() { localStorage.removeItem("ts_app_session"); document.body.classList.remove("authed"); document.getElementById("email").value = ""; document.getElementById("pass").value = ""; toast("Logged out"); }
+  function logout() { try { localStorage.removeItem("ts_app_session"); } catch (e) {} document.body.classList.remove("authed"); document.getElementById("email").value = ""; document.getElementById("pass").value = ""; toast("Logged out"); }
 
   document.getElementById("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
     var em = document.getElementById("email").value.trim().toLowerCase();
     var pw = document.getElementById("pass").value;
     var err = document.getElementById("loginErr");
-    if (em === CREDS.email && pw === CREDS.pass) { err.textContent = ""; localStorage.setItem("ts_app_session", em); doLogin(); toast("Welcome! Demo session started ✓", "ok"); }
+    if (em === CREDS.email && pw === CREDS.pass) { err.textContent = ""; try { localStorage.setItem("ts_app_session", em); } catch (e) {} doLogin(); toast("Welcome! Demo session started ✓", "ok"); }
     else { err.textContent = "❌ Galat email ya password. Neeche demo credentials use karo."; }
   });
   document.getElementById("fillBtn").addEventListener("click", function () { document.getElementById("email").value = CREDS.email; document.getElementById("pass").value = CREDS.pass; });
 
   // start
   load(); boot();
-  if (localStorage.getItem("ts_app_session") === CREDS.email) doLogin();
+  try { if (localStorage.getItem("ts_app_session") === CREDS.email) doLogin(); } catch (e) {}
 })();
 </script>
