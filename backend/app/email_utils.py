@@ -16,9 +16,12 @@ _LOG_FILE = Path(__file__).resolve().parent.parent / "sent_emails.log"
 
 
 def build_link(purpose: str, token: str) -> str:
-    """Build the link the user clicks. `purpose` is 'verify' or 'reset'."""
-    path = "verify-email" if purpose == "verify" else "reset-password"
-    return f"{settings.FRONTEND_URL.rstrip('/')}/{path}?token={token}"
+    """Build the link the user clicks. `purpose` is 'verify' or 'reset'.
+
+    Points at the auth page (auth.html), which reads ?mode & ?token and calls the API.
+    """
+    mode = "verify" if purpose == "verify" else "reset"
+    return f"{settings.FRONTEND_URL.rstrip('/')}/auth.html?mode={mode}&token={token}"
 
 
 def send_email(to: str, subject: str, body: str) -> None:

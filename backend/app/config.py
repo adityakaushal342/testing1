@@ -32,7 +32,8 @@ class Settings:
 
     # --- URLs ---
     # Where the frontend lives; used to build verification / reset links.
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    # Default points at this backend, which also serves the auth page.
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:8000")
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "*")
 
     # --- Email (SMTP). If SMTP_HOST is empty, emails are logged to console/file instead. ---

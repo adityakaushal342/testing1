@@ -1,12 +1,25 @@
 """FastAPI application entrypoint for AI Trading Master auth."""
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from .config import settings
 from .database import init_db
 from .routers import auth
+
+# Repo root (contains the frontend HTML files): backend/app/main.py -> repo root
+FRONTEND_DIR = Path(__file__).resolve().parents[2]
+FRONTEND_FILES = {
+    "/": "index.html",
+    "/index.html": "index.html",
+    "/auth.html": "auth.html",
+    "/app.html": "app.html",
+    "/dashboard.html": "dashboard.html",
+    "/AI-Trading-Master.html": "AI-Trading-Master.html",
+}
 
 
 @asynccontextmanager
@@ -35,14 +48,24 @@ app.add_middleware(
 )
 
 
-@app.get("/", tags=["health"])
-def root():
-    return {"service": "AI Trading Master Auth API", "status": "ok", "docs": "/docs"}
-
-
 @app.get("/health", tags=["health"])
 def health():
     return {"status": "healthy"}
 
 
 app.include_router(auth.router)
+
+
+# --- Serve the frontend HTML files (landing, auth, demo app) from the same origin ---
+def _serve(filename: str):
+    def handler():
+        path = FRONTEND_DIR / filename
+        if not path.exists():
+            raise HTTPException(status_code=404, detail=f"{filename} not found")
+        return FileResponse(path)
+
+    return handler
+
+
+for _route, _file in FRONTEND_FILES.items():
+    app.add_api_route(_route, _serve(_file), include_in_schema=False)

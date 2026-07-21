@@ -43,11 +43,26 @@ python seed.py
 #   admin@aitradingmaster.com / Admin@12345   (admin)
 #   demo@aitradingmaster.com  / Demo@12345    (user)
 
-# run the API
+# run everything (API + frontend served together)
 uvicorn app.main:app --reload
 ```
 
-Open **http://localhost:8000/docs** for interactive Swagger UI.
+One server now serves the whole product at **http://localhost:8000**:
+
+| URL | What |
+|---|---|
+| `/` | Landing page (`index.html`) |
+| `/auth.html` | **Real** Login / Register / Verify / Forgot / Reset (talks to the API) |
+| `/app.html` | Demo trading app |
+| `/docs` | Interactive Swagger UI |
+| `/auth/*` | The auth API |
+
+Because the frontend is same-origin with the API, there are no CORS issues and
+verification / reset email links resolve to the real page. Open **`/auth.html`**,
+register, click **"Verify my email now"** (shown in dev mode), then log in.
+
+> The same `/auth/*` API is what a future **Flutter mobile app** or **Next.js**
+> frontend will call — this backend is the shared foundation for web and mobile.
 
 ## Try it (curl)
 
