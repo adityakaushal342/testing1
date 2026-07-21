@@ -71,6 +71,9 @@
   .nav-item:hover { background: var(--card); color: var(--text); }
   .nav-item.active { background: color-mix(in srgb, var(--blue) 16%, transparent); color: var(--blue); }
   .nav-item .badge { margin-left: auto; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--blue); color: #fff; }
+  .nav-item.locked { opacity: 0.55; }
+  .nav-item.locked:hover { opacity: 0.8; background: var(--card); }
+  .lockb { margin-left: auto; font-size: 0.72rem; }
   .sidebar-foot { margin-top: auto; }
   .upgrade { background: linear-gradient(160deg, var(--card), var(--card-2)); border: 1px solid var(--border); border-radius: 12px; padding: 13px; }
   .upgrade .t { font-weight: 700; font-size: 0.82rem; } .upgrade .d { font-size: 0.74rem; color: var(--muted); margin: 5px 0 10px; }
@@ -132,6 +135,30 @@
   .side-pill.sell { color: var(--red); background: color-mix(in srgb, var(--red) 15%, transparent); }
   .close-x { color: var(--faint); cursor: pointer; background: none; border: none; padding: 5px 9px; border-radius: 7px; font-weight: 700; font-size: 0.72rem; border: 1px solid var(--border); }
   .close-x:hover { color: var(--red); border-color: var(--red); }
+  .explain-x { color: var(--cyan, #22D3EE); cursor: pointer; background: none; border: 1px solid var(--border); padding: 5px 9px; border-radius: 7px; font-weight: 600; font-size: 0.72rem; }
+  .explain-x:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* Indicators popover */
+  .ind-wrap { position: relative; }
+  .ind-pop { position: absolute; right: 0; top: 40px; z-index: 30; width: 232px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: 0 20px 44px -18px rgba(0,0,0,0.6); }
+  .ind-pop[hidden] { display: none; }
+  .ind-h { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.82rem; padding: 6px 8px 8px; }
+  .ind-h span { font-size: 0.66rem; color: var(--faint); font-weight: 600; }
+  .ind-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+  .ind-row:hover { background: var(--bg-soft); }
+  .ind-row b { font-weight: 700; }
+  .ind-row input { width: 16px; height: 16px; accent-color: var(--blue); }
+  .ind-row.lk { color: var(--faint); cursor: not-allowed; }
+  .ind-div { display: flex; justify-content: space-between; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 600; padding: 10px 10px 4px; margin-top: 4px; border-top: 1px solid var(--border); }
+
+  /* Feature access list */
+  .feat-list { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 620px) { .feat-list { grid-template-columns: 1fr; } }
+  .feat { display: flex; align-items: center; gap: 9px; font-size: 0.9rem; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-soft); }
+  .feat .fi { font-size: 0.9rem; }
+  .feat.off { color: var(--faint); }
+  .feat.on { color: var(--text); border-color: color-mix(in srgb, var(--green) 30%, var(--border)); }
+  .feat .ftag { margin-left: auto; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--warning); font-weight: 700; }
 
   /* Trade layout */
   .trade-grid { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
@@ -335,6 +362,8 @@
     <div class="nav-item" data-view="trade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Demo Trading</span></div>
     <div class="nav-item" data-view="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v3h1a2 2 0 0 1 0 4h-1v3a2 2 0 0 1-2 2h-3v-1a2 2 0 0 0-4 0v1H7a2 2 0 0 1-2-2v-3H4a2 2 0 0 1 0-4h1V7a2 2 0 0 1 2-2h3V4a2 2 0 0 1 2-2Z"/></svg><span>AI Assistant</span><span class="badge">AI</span></div>
     <div class="nav-item" data-view="journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Journal</span></div>
+    <div class="nav-item locked" data-lock="Real Portfolio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 12h3v6H7zM12 8h3v10h-3zM17 5h3v13h-3z"/></svg><span>Portfolio</span><span class="lockb">🔒</span></div>
+    <div class="nav-item locked" data-lock="Broker Connection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg><span>Broker</span><span class="lockb">🔒</span></div>
     <div class="nav-item" data-view="subscription"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><span>Subscription</span></div>
     <div class="nav-item" data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8 2 2 0 1 1-2.8 2.8 1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0 1.6 1.6 0 0 0-2.7-1.1 2 2 0 1 1-2.8-2.8A1.6 1.6 0 0 0 4.6 15a2 2 0 0 1 0-4 1.6 1.6 0 0 0 1.1-2.7 2 2 0 1 1 2.8-2.8A1.6 1.6 0 0 0 11 4.6a2 2 0 0 1 4 0 1.6 1.6 0 0 0 2.7 1.1 2 2 0 1 1 2.8 2.8A1.6 1.6 0 0 0 21 11a2 2 0 0 1 0 4Z"/></svg><span>Settings</span></div>
     <div class="sidebar-foot">
@@ -395,6 +424,20 @@
               <span class="px tnum" id="trPx">—</span>
               <span class="chg" id="trChg">—</span>
               <div class="tf-group"><button class="tf">1m</button><button class="tf active">5m</button><button class="tf">15m</button><button class="tf">1H</button></div>
+              <div class="ind-wrap">
+                <button class="chart-tool-btn" id="indBtn" title="Indicators" aria-label="Indicators"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 13l3-3 3 3 4-5"/></svg></button>
+                <div class="ind-pop" id="indPop" hidden>
+                  <div class="ind-h">Indicators <span>Demo plan</span></div>
+                  <label class="ind-row"><span><b>EMA</b> (9, 21)</span><input type="checkbox" id="indEma" checked></label>
+                  <label class="ind-row"><span><b>RSI</b> (14)</span><input type="checkbox" id="indRsi"></label>
+                  <div class="ind-div">Premium <span>🔒 locked</span></div>
+                  <div class="ind-row lk" data-prem="Bollinger Bands"><span>Bollinger Bands</span><span class="lockb">🔒</span></div>
+                  <div class="ind-row lk" data-prem="Supertrend"><span>Supertrend</span><span class="lockb">🔒</span></div>
+                  <div class="ind-row lk" data-prem="VWAP"><span>VWAP</span><span class="lockb">🔒</span></div>
+                  <div class="ind-row lk" data-prem="ADX / DMI"><span>ADX / DMI</span><span class="lockb">🔒</span></div>
+                  <div class="ind-row lk" data-prem="Ichimoku Cloud"><span>Ichimoku Cloud</span><span class="lockb">🔒</span></div>
+                </div>
+              </div>
               <button class="chart-tool-btn" id="maxBtn" title="Fullscreen chart (Esc to exit)" aria-label="Fullscreen chart"><svg id="maxIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
             </div>
             <div class="chart-body"><canvas id="trChart"></canvas></div>
@@ -534,9 +577,26 @@
     <!-- SETTINGS -->
     <section class="view" id="view-settings">
       <div class="view-head"><h2>Settings</h2><p>Account aur demo controls.</p></div>
+
+      <div class="panel settings-card" style="margin-bottom:16px;">
+        <div class="panel-head"><span class="t">Demo Plan — Feature Access</span><span class="count">Free demo</span></div>
+        <div class="feat-list">
+          <div class="feat on"><span class="fi">✅</span> AI Strategy Builder</div>
+          <div class="feat on"><span class="fi">✅</span> Demo Trading (₹10,00,000 virtual)</div>
+          <div class="feat on"><span class="fi">✅</span> AI TP / SL (auto)</div>
+          <div class="feat on"><span class="fi">✅</span> Manual TP / SL</div>
+          <div class="feat on"><span class="fi">✅</span> AI Trade Explanation</div>
+          <div class="feat off"><span class="fi">🔒</span> Real Portfolio <span class="ftag">locked</span></div>
+          <div class="feat off"><span class="fi">🔒</span> Broker Connection <span class="ftag">locked</span></div>
+          <div class="feat off"><span class="fi">🔒</span> Premium Indicators <span class="ftag">locked</span></div>
+        </div>
+      </div>
+
       <div class="panel settings-card">
         <div class="set-row"><div class="info"><div class="t">Logged in as</div><div class="d" id="setEmail">demo@tradesmart.ai</div></div></div>
         <div class="set-row"><div class="info"><div class="t">Current plan</div><div class="d" id="setPlan">Free</div></div></div>
+        <div class="set-row"><div class="info"><div class="t">Connect Broker <span class="lockb">🔒</span></div><div class="d">Real broker account connect karna demo me available nahi.</div></div><button class="set-btn" data-lock="Broker Connection">Connect</button></div>
+        <div class="set-row"><div class="info"><div class="t">Real Portfolio <span class="lockb">🔒</span></div><div class="d">Real money portfolio demo plan me locked hai.</div></div><button class="set-btn" data-lock="Real Portfolio">View</button></div>
         <div class="set-row"><div class="info"><div class="t">Reset demo account</div><div class="d">Balance ko ₹10,00,000 pe wapas set karo, positions & history clear karo.</div></div><button class="set-btn danger" id="resetBtn">Reset</button></div>
         <div class="set-row"><div class="info"><div class="t">Logout</div><div class="d">Demo session se bahar niklo.</div></div><button class="set-btn" id="logoutBtn">Logout</button></div>
       </div>
@@ -631,6 +691,7 @@
     setTimeout(function () { t.style.transition = "opacity .3s"; t.style.opacity = "0"; setTimeout(function () { t.remove(); }, 300); }, 2600);
   }
   function addJournal(text) { state.journal.unshift({ t: now(), text: text }); if (state.journal.length > 100) state.journal.pop(); }
+  function lockToast(name) { toast("🔒 " + name + " demo plan me locked hai — real account / Pro me milega", "err"); }
 
   // ===================== TRADING =====================
   function openPos(side) {
@@ -667,6 +728,7 @@
     state.positions.push({ id: uid++, sym: sig.sym, side: sig.side, qty: sig.qty, entry: sig.entry, margin: margin, sl: sig.sl, tp: sig.tp, ai: true, t: now() });
     addJournal("🤖 AI " + sig.side + " " + sig.qty + " " + sig.sym + " @ " + fmt(sig.entry) + " · SL " + fmt(sig.sl) + " · TP " + fmt(sig.tp));
     toast("🤖 AI trade executed · " + sig.side + " " + sig.sym + " (SL+TP set)", "ok");
+    pushBubble("✅ Trade executed: <b>" + sig.side + " " + sig.qty + " " + sig.sym + "</b> @ " + fmt(sig.entry) + " · SL <span class='r'>" + fmt(sig.sl) + "</span> · TP <span class='g'>" + fmt(sig.tp) + "</span>. Positions me <b>🧠 Explain</b> dabakar poori detail dekho.", "ai");
     save(); renderAll(); switchView("trade");
   }
   function closePos(id, reason) {
@@ -726,7 +788,7 @@
       "<td>" + slCell + "</td>" +
       "<td>" + tpCell + "</td>" +
       "<td class='tnum " + colorClass(u) + "'>" + fmtSigned(u) + "</td>" +
-      (withClose ? "<td><button class='close-x' data-close='" + p.id + "'>Close ✕</button></td>" : "") +
+      (withClose ? "<td style='white-space:nowrap'><button class='explain-x' data-explain='" + p.id + "' title='AI explain this trade'>🧠 Explain</button> <button class='close-x' data-close='" + p.id + "'>Close ✕</button></td>" : "") +
       "</tr>";
   }
 
@@ -833,6 +895,9 @@
   var trMap = null, trHandles = [], dragging = null; // chart drag state (trade canvas)
   function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   var TICKS_PER_CANDLE = { "1m": 2, "5m": 6, "15m": 14, "1H": 30 };
+  var IND = { ema: true, rsi: false }; // free indicators (demo plan)
+  function emaSeries(candles, period) { var k = 2 / (period + 1), out = [], prev; for (var i = 0; i < candles.length; i++) { var c = candles[i].c; prev = i ? c * k + prev * (1 - k) : c; out.push(prev); } return out; }
+  function computeRSI(candles, period) { var g = 0, l = 0, n = candles.length, start = Math.max(1, n - period), cnt = 0; for (var i = start; i < n; i++) { var d = candles[i].c - candles[i - 1].c; if (d >= 0) g += d; else l -= d; cnt++; } if (!cnt) return 50; var ag = g / cnt, al = l / cnt; if (al === 0) return 100; return 100 - 100 / (1 + ag / al); }
   // fixed-bucket candles keyed to absolute tick index → newest candle grows, older ones stay locked (real-market behaviour)
   function buildCandles(sym, tf, maxN) {
     var k = TICKS_PER_CANDLE[tf] || 6;
@@ -892,6 +957,25 @@
       var yo = py(c.o), yc = py(c.c);
       ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(Math.abs(yc - yo), 1.5));
     });
+    // Free indicators (EMA / RSI) — trade chart only
+    if (canvasId === "trChart" && IND.ema) {
+      [[9, "#3B82F6"], [21, "#F59E0B"]].forEach(function (e) {
+        var arr = emaSeries(candles, e[0]);
+        ctx.beginPath();
+        for (var i = 0; i < arr.length; i++) { var x = i * slot + slot / 2; if (i === 0) ctx.moveTo(x, py(arr[i])); else ctx.lineTo(x, py(arr[i])); }
+        ctx.strokeStyle = e[1]; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
+      });
+      ctx.font = "bold 10px " + font; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillStyle = "#3B82F6"; ctx.fillText("EMA 9", 8, 8);
+      ctx.fillStyle = "#F59E0B"; ctx.fillText("EMA 21", 52, 8);
+    }
+    if (canvasId === "trChart" && IND.rsi) {
+      var rsiv = computeRSI(candles, 14);
+      ctx.font = "bold 10px " + font; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      ctx.fillStyle = rsiv >= 70 ? red : rsiv <= 30 ? green : faint;
+      ctx.fillText("RSI(14) " + rsiv.toFixed(1), 8, IND.ema ? 22 : 8);
+    }
+
     // position overlay lines (Entry / SL / TP) for this symbol
     var handles = [];
     function drawPosLine(price, color, label, grab) {
@@ -1068,6 +1152,36 @@
     setTimeout(function () { t.remove(); pushBubble(aiRespond(text), "ai"); }, 700 + Math.random() * 500);
   }
 
+  // AI Trade Explanation — explain a specific open position
+  function explainTrade(id) {
+    var p = state.positions.filter(function (x) { return x.id === id; })[0];
+    if (!p) { toast("Position mil nahi rahi", "err"); return; }
+    switchView("ai");
+    pushBubble("Meri " + p.sym + " trade explain karo 🧠", "user");
+    var t = typing();
+    setTimeout(function () {
+      t.remove();
+      var ltp = pxOf(p.sym), u = unreal(p);
+      var dir = p.side === "BUY" ? "long (BUY)" : "short (SELL)";
+      var risk = p.sl ? Math.abs(p.entry - p.sl) * p.qty : null;
+      var reward = p.tp ? Math.abs(p.tp - p.entry) * p.qty : null;
+      var rr = (risk && reward) ? "1 : " + (reward / risk).toFixed(1) : "—";
+      var html = "<h4>🧠 Trade Explanation — " + p.sym + "</h4>" +
+        "Aapne " + p.qty + " qty ka <b>" + dir + "</b> trade liya @ <b>" + fmt(p.entry) + "</b>" + (p.ai ? " (AI-suggested 🤖)" : "") + "." +
+        "<div class='stratbox'>" +
+        "<div class='row'><span class='k'>Current price</span><span class='v'>" + fmt(ltp) + "</span></div>" +
+        "<div class='row'><span class='k'>Live P&amp;L</span><span class='v " + (u >= 0 ? "g" : "r") + "'>" + fmtSigned(u) + "</span></div>" +
+        "<div class='row'><span class='k'>Stop Loss</span><span class='v r'>" + (p.sl ? fmt(p.sl) : "set nahi") + "</span></div>" +
+        "<div class='row'><span class='k'>Take Profit</span><span class='v g'>" + (p.tp ? fmt(p.tp) : "set nahi") + "</span></div>" +
+        "<div class='row'><span class='k'>Risk : Reward</span><span class='v'>" + rr + "</span></div>" +
+        "</div>" +
+        (u >= 0 ? "✅ Abhi ye trade <b style='color:var(--green)'>profit</b> me hai. " : "🔻 Abhi ye trade <b style='color:var(--red)'>loss</b> me hai — discipline se SL tak hold karo ya soch-samajh ke exit. ") +
+        (p.sl ? "SL " + fmt(p.sl) + " pe aapka risk protected hai. " : "⚠️ SL set nahi hai — risky! SL zaroor lagao. ") +
+        (p.tp ? "TP " + fmt(p.tp) + " pe target automatically book ho jaayega." : "TP set karke apna target fix karo.");
+      pushBubble(html, "ai");
+    }, 650);
+  }
+
   // ===================== NAV / VIEWS =====================
   function switchView(v) {
     document.querySelectorAll(".nav-item[data-view]").forEach(function (n) { n.classList.toggle("active", n.getAttribute("data-view") === v); });
@@ -1092,6 +1206,16 @@
     // nav
     document.querySelectorAll(".nav-item[data-view]").forEach(function (n) { n.addEventListener("click", function () { switchView(n.getAttribute("data-view")); }); });
     document.querySelectorAll(".jump").forEach(function (b) { b.addEventListener("click", function () { switchView(b.getAttribute("data-view")); }); });
+    // locked (demo) features — sidebar
+    document.querySelectorAll(".sidebar [data-lock]").forEach(function (n) { n.addEventListener("click", function () { lockToast(n.getAttribute("data-lock")); }); });
+
+    // Indicators popover (free EMA/RSI + premium locked)
+    var indBtn = document.getElementById("indBtn"), indPop = document.getElementById("indPop");
+    indBtn.addEventListener("click", function (e) { e.stopPropagation(); indPop.hidden = !indPop.hidden; });
+    document.addEventListener("click", function (e) { if (!indPop.hidden && !e.target.closest(".ind-wrap")) indPop.hidden = true; });
+    document.getElementById("indEma").addEventListener("change", function () { IND.ema = this.checked; drawCharts(); });
+    document.getElementById("indRsi").addEventListener("change", function () { IND.rsi = this.checked; drawCharts(); });
+    document.querySelectorAll(".ind-row.lk[data-prem]").forEach(function (r) { r.addEventListener("click", function () { toast("🔒 " + r.getAttribute("data-prem") + " — Premium indicator, Pro plan me unlock", "err"); }); });
 
     // tabs
     document.querySelectorAll(".tab").forEach(function (tb) {
@@ -1125,6 +1249,8 @@
     // close position (delegated)
     document.querySelector(".main").addEventListener("click", function (e) {
       var jv = e.target.closest(".jump[data-view]"); if (jv) { switchView(jv.getAttribute("data-view")); return; }
+      var lk = e.target.closest("[data-lock]"); if (lk) { lockToast(lk.getAttribute("data-lock")); return; }
+      var ex = e.target.closest("[data-explain]"); if (ex) { explainTrade(parseInt(ex.getAttribute("data-explain"), 10)); return; }
       var c = e.target.closest("[data-close]"); if (c) { closePos(parseInt(c.getAttribute("data-close"), 10)); return; }
       var tr = e.target.closest("[data-trade]"); if (tr) { selectedSym = tr.getAttribute("data-trade"); sel.value = selectedSym; switchView("trade"); return; }
       var row = e.target.closest("[data-sym]"); if (row) { selectedSym = row.getAttribute("data-sym"); sel.value = selectedSym; switchView("trade"); }
