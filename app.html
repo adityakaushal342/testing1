@@ -88,6 +88,30 @@
   .panel-head .count { font-size: 0.68rem; font-weight: 700; color: var(--muted); background: var(--bg-soft); border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px; }
   .panel-head .right { margin-left: auto; font-weight: 800; font-size: 0.92rem; }
 
+  /* Open Positions cards (dashboard) */
+  .pos-cards { padding: 12px; display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; }
+  .pos-card { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 13px; padding: 13px 14px; transition: border-color .18s, transform .18s; cursor: default; }
+  .pos-card:hover { border-color: color-mix(in srgb, var(--blue) 40%, var(--border)); transform: translateY(-1px); }
+  .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pc-sym { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; }
+  .pc-pnl { font-weight: 800; font-size: 1.02rem; letter-spacing: -0.01em; }
+  .pc-mid { display: flex; align-items: center; gap: 12px; margin-top: 9px; font-size: 0.78rem; color: var(--muted); }
+  .pc-mid .flow b { color: var(--text); font-weight: 700; }
+  .pc-mid .arrow { color: var(--faint); margin: 0 2px; }
+  .pc-pct { margin-left: auto; font-weight: 700; padding: 2px 8px; border-radius: 7px; font-size: 0.76rem; }
+  .pc-pct.pos { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+  .pc-pct.neg { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+  .pc-bar { position: relative; height: 6px; border-radius: 999px; margin-top: 13px; background: linear-gradient(90deg, color-mix(in srgb, var(--red) 55%, transparent), color-mix(in srgb, var(--warning) 45%, transparent) 50%, color-mix(in srgb, var(--green) 55%, transparent)); }
+  .pc-bar .mk { position: absolute; top: 50%; width: 13px; height: 13px; border-radius: 50%; background: var(--text); border: 2px solid var(--card); transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+  .pc-legend { display: flex; justify-content: space-between; margin-top: 7px; font-size: 0.66rem; font-weight: 600; }
+  .pc-legend .sl { color: var(--red); } .pc-legend .tp { color: var(--green); }
+  .pc-legend .mid { color: var(--faint); }
+  .pc-nosl { margin-top: 10px; font-size: 0.7rem; color: var(--faint); display: flex; align-items: center; gap: 6px; }
+  .pc-empty { padding: 34px 20px; text-align: center; }
+  .pc-empty .ic { width: 46px; height: 46px; border-radius: 13px; margin: 0 auto 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--blue) 12%, transparent); color: var(--blue); }
+  .pc-empty .t { font-weight: 600; font-size: 0.9rem; } .pc-empty .d { font-size: 0.8rem; color: var(--faint); margin-top: 4px; }
+  .pc-empty button { margin-top: 14px; padding: 9px 16px; border-radius: 9px; border: none; background: var(--blue); color: #fff; font-weight: 600; font-size: 0.82rem; cursor: pointer; }
+
   /* Stat row */
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
   @media (max-width: 900px) { .stats { grid-template-columns: 1fr 1fr; } }
@@ -341,7 +365,7 @@
         </div>
         <div class="panel">
           <div class="panel-head"><span class="t">Open Positions</span><span class="count" id="dashPosCount">0</span><span class="right" id="dashPosPnl">—</span></div>
-          <div class="table-wrap"><table><tbody id="dashPosBody"></tbody></table></div>
+          <div class="pos-cards" id="dashPosBody"></div>
         </div>
       </div>
     </section>
@@ -668,18 +692,43 @@
       "</tr>";
   }
 
+  function posCard(p) {
+    var ltp = pxOf(p.sym);
+    var u = unreal(p);
+    var cls = colorClass(u);
+    var pnlPct = (u / p.margin) * 100;
+    var range = "";
+    if (p.sl && p.tp) {
+      var frac = (ltp - p.sl) / (p.tp - p.sl);
+      frac = Math.max(0, Math.min(1, frac));
+      range = "<div class='pc-bar'><span class='mk' style='left:" + (frac * 100).toFixed(1) + "%'></span></div>" +
+        "<div class='pc-legend'><span class='sl'>SL " + fmt(p.sl) + "</span><span class='mid'>LTP " + fmt(ltp) + "</span><span class='tp'>TP " + fmt(p.tp) + "</span></div>";
+    } else {
+      range = "<div class='pc-nosl'>⚠️ SL/TP set nahi — <span style='color:var(--blue);font-weight:600'>manage karo</span></div>";
+    }
+    return "<div class='pos-card'>" +
+      "<div class='pc-top'>" +
+        "<span class='pc-sym'>" + p.sym + " <span class='side-pill " + (p.side === "BUY" ? "buy" : "sell") + "'>" + p.side + "</span>" + (p.ai ? " <span title='AI trade'>🤖</span>" : "") + "</span>" +
+        "<span class='pc-pnl " + cls + "'>" + fmtSigned(u) + "</span>" +
+      "</div>" +
+      "<div class='pc-mid'>" +
+        "<span>Qty " + p.qty + "</span>" +
+        "<span class='flow'>" + fmt(p.entry) + " <span class='arrow'>→</span> <b>" + fmt(ltp) + "</b></span>" +
+        "<span class='pc-pct " + cls + "'>" + (pnlPct >= 0 ? "+" : "") + pnlPct.toFixed(2) + "%</span>" +
+      "</div>" +
+      range +
+    "</div>";
+  }
+
   function renderPositions() {
     var body = document.getElementById("posBody");
     var dash = document.getElementById("dashPosBody");
     if (state.positions.length === 0) {
       body.innerHTML = "<tr><td colspan='9' class='empty'>Koi open position nahi. Order ticket se BUY/SELL karo.</td></tr>";
-      dash.innerHTML = "<tr><td colspan='6' class='empty'>No open positions</td></tr>";
+      dash.innerHTML = "<div class='pc-empty'><div class='ic'><svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 3v18h18'/><path d='M7 14l4-4 3 3 5-6'/></svg></div><div class='t'>Koi open position nahi</div><div class='d'>Demo Trading me jaake apni pehli trade lo.</div><button class='jump' data-view='trade'>Start Trading</button></div>";
     } else {
       body.innerHTML = state.positions.map(function (p) { return posRow(p, true); }).join("");
-      dash.innerHTML = state.positions.map(function (p) {
-        var u = unreal(p);
-        return "<tr><td><b>" + p.sym + "</b></td><td><span class='side-pill " + (p.side === "BUY" ? "buy" : "sell") + "'>" + p.side + "</span></td><td class='tnum'>" + p.qty + "</td><td class='tnum'>" + fmt(p.entry) + "</td><td class='tnum'>" + fmt(pxOf(p.sym)) + "</td><td class='tnum " + colorClass(u) + "'>" + fmtSigned(u) + "</td></tr>";
-      }).join("");
+      dash.innerHTML = state.positions.map(posCard).join("");
     }
     var u = totalUnreal();
     document.getElementById("dashPosCount").textContent = state.positions.length;
@@ -962,6 +1011,7 @@
 
     // close position (delegated)
     document.querySelector(".main").addEventListener("click", function (e) {
+      var jv = e.target.closest(".jump[data-view]"); if (jv) { switchView(jv.getAttribute("data-view")); return; }
       var c = e.target.closest("[data-close]"); if (c) { closePos(parseInt(c.getAttribute("data-close"), 10)); return; }
       var tr = e.target.closest("[data-trade]"); if (tr) { selectedSym = tr.getAttribute("data-trade"); sel.value = selectedSym; switchView("trade"); return; }
       var row = e.target.closest("[data-sym]"); if (row) { selectedSym = row.getAttribute("data-sym"); sel.value = selectedSym; switchView("trade"); }
