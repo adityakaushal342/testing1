@@ -10,15 +10,12 @@ from .config import settings
 from .database import init_db
 from .routers import auth
 
-# Repo root (contains the frontend HTML files): backend/app/main.py -> repo root
+# Repo root (contains the single-page frontend): backend/app/main.py -> repo root
 FRONTEND_DIR = Path(__file__).resolve().parents[2]
+# Everything lives in one page now (landing + auth + app).
 FRONTEND_FILES = {
     "/": "index.html",
     "/index.html": "index.html",
-    "/auth.html": "auth.html",
-    "/app.html": "app.html",
-    "/dashboard.html": "dashboard.html",
-    "/AI-Trading-Master.html": "AI-Trading-Master.html",
 }
 
 
