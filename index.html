@@ -586,6 +586,19 @@
 </div>
 
 <script>
+  // ---- App link resolver ----
+  // Locally (file://) the buttons open the sibling app.html.
+  // In the hosted artifact preview there is no sibling file, so point to the published app artifact in a new tab.
+  (function () {
+    var APP_ARTIFACT = "https://claude.ai/code/artifact/3d4133e1-8e25-487e-b2aa-013b6ca7df14";
+    var hosted = location.protocol !== "file:";
+    var url = hosted ? APP_ARTIFACT : "app.html";
+    document.querySelectorAll('a[href="app.html"]').forEach(function (a) {
+      a.setAttribute("href", url);
+      if (hosted) { a.setAttribute("target", "_blank"); a.setAttribute("rel", "noopener"); }
+    });
+  })();
+
   // ---- Theme ----
   (function () {
     var root = document.documentElement, icon = document.getElementById('themeIcon');
