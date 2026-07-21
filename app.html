@@ -142,6 +142,29 @@
   .btn-trade:active { transform: translateY(1px); }
   .btn-buy { background: var(--green); } .btn-buy:hover { background: #16a34a; }
   .btn-sell { background: var(--red); } .btn-sell:hover { background: #dc2626; }
+  .sltp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .sltp { position: relative; }
+  .sltp label { display: block; font-size: 0.7rem; font-weight: 600; margin-bottom: 4px; }
+  .sltp label.sl { color: var(--red); } .sltp label.tp { color: var(--green); }
+  .sltp input { width: 100%; height: 40px; padding: 0 10px; border-radius: 9px; background: var(--bg-soft); border: 1px solid var(--border); color: var(--text); font-family: inherit; font-weight: 700; font-size: 0.88rem; }
+  .sltp input:focus { outline: none; border-color: var(--blue); }
+  .auto-sltp { width: 100%; margin-bottom: 12px; padding: 8px; border-radius: 9px; background: color-mix(in srgb, var(--blue) 12%, transparent); border: 1px dashed color-mix(in srgb, var(--blue) 45%, var(--border)); color: var(--blue); font-weight: 600; font-size: 0.78rem; cursor: pointer; }
+  .auto-sltp:hover { background: color-mix(in srgb, var(--blue) 18%, transparent); }
+  .sl-cell { color: var(--red); font-size: 0.78rem; } .tp-cell { color: var(--green); font-size: 0.78rem; }
+  .cell-dash { color: var(--faint); }
+
+  /* Sidebar collapse */
+  body.nav-collapsed { --sidebar-w: 0px; }
+  body.nav-collapsed .sidebar { display: none; }
+  .nav-toggle { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: var(--card); border: 1px solid var(--border); color: var(--muted); cursor: pointer; flex-shrink: 0; }
+  .nav-toggle:hover { color: var(--text); border-color: var(--blue); }
+
+  /* Maximize / fullscreen chart */
+  .chart-tool-btn { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; background: var(--bg-soft); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+  .chart-tool-btn:hover { color: var(--text); border-color: var(--blue); }
+  .chart-card.max { position: fixed; inset: 0; z-index: 95; border-radius: 0; height: 100vh; width: 100vw; display: flex; flex-direction: column; }
+  .chart-card.max .chart-body { flex: 1; height: auto; }
+  body.has-max { overflow: hidden; }
 
   .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding: 0 8px; }
   .tab { padding: 12px 14px; font-size: 0.85rem; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
@@ -176,6 +199,9 @@
   .bubble.ai .stratbox .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px dashed var(--border); }
   .bubble.ai .stratbox .row:last-child { border-bottom: none; }
   .bubble.ai .stratbox .k { color: var(--muted); } .bubble.ai .stratbox .v { font-weight: 700; }
+  .exec-btn { width: 100%; margin-top: 12px; padding: 11px; border-radius: 10px; border: none; background: var(--blue); color: #fff; font-weight: 700; font-size: 0.88rem; cursor: pointer; }
+  .exec-btn:hover { background: var(--blue-600); }
+  .exec-btn.done { background: var(--green); cursor: default; }
   .typing { align-self: flex-start; display: flex; gap: 4px; padding: 14px 16px; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 14px; border-bottom-left-radius: 4px; }
   .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: blink 1.2s infinite; }
   .typing span:nth-child(2) { animation-delay: .2s; } .typing span:nth-child(3) { animation-delay: .4s; }
@@ -260,6 +286,7 @@
 <!-- ============ APP ============ -->
 <div class="app">
   <div class="topbar">
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle sidebar" title="Hide / show sidebar"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
     <div class="logo">
       <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></svg></span>
       <span>TradeSmart<b style="color:var(--blue)">AI</b></span>
@@ -342,6 +369,7 @@
               <span class="px tnum" id="trPx">—</span>
               <span class="chg" id="trChg">—</span>
               <div class="tf-group"><button class="tf">1m</button><button class="tf active">5m</button><button class="tf">15m</button><button class="tf">1H</button></div>
+              <button class="chart-tool-btn" id="maxBtn" title="Fullscreen chart (Esc to exit)" aria-label="Fullscreen chart"><svg id="maxIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
             </div>
             <div class="chart-body"><canvas id="trChart"></canvas></div>
           </div>
@@ -353,7 +381,7 @@
             </div>
             <div class="tab-body active" id="tab-positions">
               <div class="table-wrap"><table>
-                <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>LTP</th><th>P&amp;L</th><th></th></tr></thead>
+                <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>LTP</th><th>SL</th><th>TP</th><th>P&amp;L</th><th></th></tr></thead>
                 <tbody id="posBody"></tbody>
               </table></div>
             </div>
@@ -382,6 +410,11 @@
           <select class="sel" id="orderSym"></select>
           <div class="qty-row"><label for="orderQty">Quantity</label><input id="orderQty" type="text" value="10" inputmode="numeric" /></div>
           <div class="qchips"><button data-q="10">10</button><button data-q="25">25</button><button data-q="50">50</button><button data-q="100">100</button></div>
+          <div class="sltp-row">
+            <div class="sltp"><label class="sl">Stop Loss ▼</label><input id="orderSL" type="text" placeholder="optional" inputmode="decimal" /></div>
+            <div class="sltp"><label class="tp">Take Profit ▲</label><input id="orderTP" type="text" placeholder="optional" inputmode="decimal" /></div>
+          </div>
+          <button class="auto-sltp" id="autoSltp" type="button">✨ Auto SL/TP (1.5% risk · 1:2 reward)</button>
           <div class="order-info"><span>Market Price</span><b class="tnum" id="orderPx">—</b></div>
           <div class="order-info"><span>Order Value</span><b class="tnum" id="orderVal">—</b></div>
           <div class="order-info"><span>Free Cash</span><b class="tnum" id="orderCash">—</b></div>
@@ -404,6 +437,7 @@
         </div>
         <div class="ai-scroll" id="aiScroll"></div>
         <div class="ai-chips">
+          <button data-msg="AI trade predict karke lo">🎯 AI trade lo</button>
           <button data-msg="EMA Strategy banao">EMA Strategy banao</button>
           <button data-msg="Market sideways hai kya?">Market sideways hai kya?</button>
           <button data-msg="Meri strategy improve karo">Meri strategy improve karo</button>
@@ -542,26 +576,65 @@
     var qty = parseInt(document.getElementById("orderQty").value, 10);
     if (!qty || qty <= 0) { toast("Valid quantity daalo", "err"); return; }
     var price = pxOf(sym);
+    var slRaw = parseFloat(document.getElementById("orderSL").value);
+    var tpRaw = parseFloat(document.getElementById("orderTP").value);
+    var sl = isFinite(slRaw) ? slRaw : null;
+    var tp = isFinite(tpRaw) ? tpRaw : null;
+    // validate SL/TP are on the correct side of entry
+    if (side === "BUY") {
+      if (sl && sl >= price) { toast("BUY me Stop Loss price se NEECHE hona chahiye", "err"); return; }
+      if (tp && tp <= price) { toast("BUY me Take Profit price se UPAR hona chahiye", "err"); return; }
+    } else {
+      if (sl && sl <= price) { toast("SELL me Stop Loss price se UPAR hona chahiye", "err"); return; }
+      if (tp && tp >= price) { toast("SELL me Take Profit price se NEECHE hona chahiye", "err"); return; }
+    }
     var margin = price * qty;
     if (margin > state.cash) { toast("Free cash kam hai (need " + fmt(margin) + ")", "err"); return; }
     state.cash -= margin;
-    state.positions.push({ id: uid++, sym: sym, side: side, qty: qty, entry: price, margin: margin, t: now() });
-    addJournal((side === "BUY" ? "🟢 BUY" : "🔴 SELL") + " " + qty + " " + sym + " @ " + fmt(price));
+    state.positions.push({ id: uid++, sym: sym, side: side, qty: qty, entry: price, margin: margin, sl: sl, tp: tp, ai: false, t: now() });
+    addJournal((side === "BUY" ? "🟢 BUY" : "🔴 SELL") + " " + qty + " " + sym + " @ " + fmt(price) + (sl ? " · SL " + fmt(sl) : "") + (tp ? " · TP " + fmt(tp) : ""));
     toast((side === "BUY" ? "Bought " : "Shorted ") + qty + " " + sym + " @ " + fmt(price), "ok");
+    document.getElementById("orderSL").value = ""; document.getElementById("orderTP").value = "";
     save(); renderAll();
   }
-  function closePos(id) {
+  // AI trade with COMPULSORY SL/TP
+  function openPosFromSignal(sig) {
+    var margin = sig.entry * sig.qty;
+    if (margin > state.cash) { toast("Free cash kam hai AI trade ke liye (need " + fmt(margin) + ")", "err"); return; }
+    state.cash -= margin;
+    state.positions.push({ id: uid++, sym: sig.sym, side: sig.side, qty: sig.qty, entry: sig.entry, margin: margin, sl: sig.sl, tp: sig.tp, ai: true, t: now() });
+    addJournal("🤖 AI " + sig.side + " " + sig.qty + " " + sig.sym + " @ " + fmt(sig.entry) + " · SL " + fmt(sig.sl) + " · TP " + fmt(sig.tp));
+    toast("🤖 AI trade executed · " + sig.side + " " + sig.sym + " (SL+TP set)", "ok");
+    save(); renderAll(); switchView("trade");
+  }
+  function closePos(id, reason) {
     var idx = state.positions.findIndex(function (p) { return p.id === id; });
     if (idx < 0) return;
     var p = state.positions[idx];
     var pnl = unreal(p);
     state.cash += p.margin + pnl;
-    state.history.unshift({ t: now(), sym: p.sym, side: p.side, qty: p.qty, entry: p.entry, exit: pxOf(p.sym), pnl: pnl });
+    state.history.unshift({ t: now(), sym: p.sym, side: p.side, qty: p.qty, entry: p.entry, exit: pxOf(p.sym), pnl: pnl, reason: reason || "Manual" });
     if (state.history.length > 100) state.history.pop();
     state.positions.splice(idx, 1);
-    addJournal("⚪ CLOSED " + p.qty + " " + p.sym + " → P&L " + fmtSigned(pnl));
-    toast("Closed " + p.sym + " · P&L " + fmtSigned(pnl), pnl >= 0 ? "ok" : "err");
+    var tag = reason === "SL" ? "🛑 SL hit" : reason === "TP" ? "🎯 TP hit" : "⚪ CLOSED";
+    addJournal(tag + " " + p.qty + " " + p.sym + " → P&L " + fmtSigned(pnl));
+    toast((reason === "SL" ? "🛑 Stop Loss hit · " : reason === "TP" ? "🎯 Target hit · " : "Closed ") + p.sym + " · P&L " + fmtSigned(pnl), pnl >= 0 ? "ok" : "err");
     save(); renderAll();
+  }
+  // auto-close positions when SL/TP is reached
+  function checkSLTP() {
+    var toClose = [];
+    state.positions.forEach(function (p) {
+      var ltp = pxOf(p.sym);
+      if (p.side === "BUY") {
+        if (p.sl && ltp <= p.sl) toClose.push([p.id, "SL"]);
+        else if (p.tp && ltp >= p.tp) toClose.push([p.id, "TP"]);
+      } else {
+        if (p.sl && ltp >= p.sl) toClose.push([p.id, "SL"]);
+        else if (p.tp && ltp <= p.tp) toClose.push([p.id, "TP"]);
+      }
+    });
+    toClose.forEach(function (x) { closePos(x[0], x[1]); });
   }
 
   // ===================== RENDER =====================
@@ -580,12 +653,16 @@
 
   function posRow(p, withClose) {
     var u = unreal(p);
+    var slCell = p.sl ? "<span class='sl-cell tnum'>" + fmt(p.sl) + "</span>" : "<span class='cell-dash'>—</span>";
+    var tpCell = p.tp ? "<span class='tp-cell tnum'>" + fmt(p.tp) + "</span>" : "<span class='cell-dash'>—</span>";
     return "<tr>" +
-      "<td><b>" + p.sym + "</b></td>" +
+      "<td><b>" + p.sym + "</b>" + (p.ai ? " <span title='AI trade' style='font-size:0.7rem'>🤖</span>" : "") + "</td>" +
       "<td><span class='side-pill " + (p.side === "BUY" ? "buy" : "sell") + "'>" + p.side + "</span></td>" +
       "<td class='tnum'>" + p.qty + "</td>" +
       "<td class='tnum'>" + fmt(p.entry) + "</td>" +
       "<td class='tnum'>" + fmt(pxOf(p.sym)) + "</td>" +
+      "<td>" + slCell + "</td>" +
+      "<td>" + tpCell + "</td>" +
       "<td class='tnum " + colorClass(u) + "'>" + fmtSigned(u) + "</td>" +
       (withClose ? "<td><button class='close-x' data-close='" + p.id + "'>Close ✕</button></td>" : "") +
       "</tr>";
@@ -595,7 +672,7 @@
     var body = document.getElementById("posBody");
     var dash = document.getElementById("dashPosBody");
     if (state.positions.length === 0) {
-      body.innerHTML = "<tr><td colspan='7' class='empty'>Koi open position nahi. Order ticket se BUY/SELL karo.</td></tr>";
+      body.innerHTML = "<tr><td colspan='9' class='empty'>Koi open position nahi. Order ticket se BUY/SELL karo.</td></tr>";
       dash.innerHTML = "<tr><td colspan='6' class='empty'>No open positions</td></tr>";
     } else {
       body.innerHTML = state.positions.map(function (p) { return posRow(p, true); }).join("");
@@ -619,7 +696,8 @@
     var body = document.getElementById("histBody");
     if (state.history.length === 0) { body.innerHTML = "<tr><td colspan='7' class='empty'>Abhi tak koi trade close nahi hua.</td></tr>"; return; }
     body.innerHTML = state.history.map(function (h) {
-      return "<tr><td style='color:var(--faint)'>" + h.t + "</td><td><b>" + h.sym + "</b></td><td><span class='side-pill " + (h.side === "BUY" ? "buy" : "sell") + "'>" + h.side + "</span></td><td class='tnum'>" + h.qty + "</td><td class='tnum'>" + fmt(h.entry) + "</td><td class='tnum'>" + fmt(h.exit) + "</td><td class='tnum " + colorClass(h.pnl) + "'>" + fmtSigned(h.pnl) + "</td></tr>";
+      var rz = h.reason === "SL" ? " <span style='font-size:0.66rem;color:var(--red)'>🛑SL</span>" : h.reason === "TP" ? " <span style='font-size:0.66rem;color:var(--green)'>🎯TP</span>" : "";
+      return "<tr><td style='color:var(--faint)'>" + h.t + "</td><td><b>" + h.sym + "</b>" + rz + "</td><td><span class='side-pill " + (h.side === "BUY" ? "buy" : "sell") + "'>" + h.side + "</span></td><td class='tnum'>" + h.qty + "</td><td class='tnum'>" + fmt(h.entry) + "</td><td class='tnum'>" + fmt(h.exit) + "</td><td class='tnum " + colorClass(h.pnl) + "'>" + fmtSigned(h.pnl) + "</td></tr>";
     }).join("");
   }
 
@@ -713,6 +791,7 @@
       m.series.push(m.price);
       if (m.series.length > 90) m.series.shift();
     });
+    if (document.body.classList.contains("authed")) checkSLTP();
     if (document.body.classList.contains("authed")) {
       renderStats(); renderPositions(); renderTradeHeader(); renderOrderTicket();
       // update market table prices with flash
@@ -733,12 +812,52 @@
   }
   function typing() { var t = document.createElement("div"); t.className = "typing"; t.innerHTML = "<span></span><span></span><span></span>"; aiScroll.appendChild(t); aiScroll.scrollTop = aiScroll.scrollHeight; return t; }
 
+  // AI generates a trade prediction with COMPULSORY SL + TP
+  var pendingSignals = {}; var sigId = 1;
+  function makeSignal() {
+    var sym = selectedSym || "NIFTY 50";
+    var tr = trend(sym);
+    var side = tr === "down" ? "SELL" : "BUY"; // bias to trend; flat/up -> BUY
+    var entry = pxOf(sym);
+    var sl, tp;
+    if (side === "BUY") { sl = entry * 0.985; tp = entry * 1.03; }   // 1.5% risk, 1:2 reward
+    else { sl = entry * 1.015; tp = entry * 0.97; }
+    // position size ~2% equity risk
+    var riskPerUnit = Math.abs(entry - sl);
+    var qty = Math.max(1, Math.floor((equity() * 0.02) / riskPerUnit));
+    while (qty > 1 && entry * qty > state.cash) qty = Math.floor(qty / 2); // fit cash
+    var id = sigId++;
+    pendingSignals[id] = { sym: sym, side: side, entry: entry, sl: sl, tp: tp, qty: qty };
+    return { id: id, sym: sym, side: side, entry: entry, sl: sl, tp: tp, qty: qty, trend: tr };
+  }
+  function signalCardHTML(s) {
+    var conf = s.trend === "flat" ? 62 : 74;
+    var dir = s.side === "BUY" ? "<span class='g'>BUY / Long ▲</span>" : "<span class='r'>SELL / Short ▼</span>";
+    var rr = Math.abs(s.tp - s.entry) / Math.abs(s.entry - s.sl);
+    return "<h4>🎯 AI Trade Prediction — " + s.sym + "</h4>Live analysis ke basis pe signal ready (SL &amp; TP <b>compulsory</b> set hain, risk-managed):" +
+      "<div class='stratbox'>" +
+      "<div class='row'><span class='k'>Direction</span><span class='v'>" + dir + "</span></div>" +
+      "<div class='row'><span class='k'>Entry</span><span class='v'>" + fmt(s.entry) + "</span></div>" +
+      "<div class='row'><span class='k'>Stop Loss</span><span class='v r'>" + fmt(s.sl) + "</span></div>" +
+      "<div class='row'><span class='k'>Take Profit</span><span class='v g'>" + fmt(s.tp) + "</span></div>" +
+      "<div class='row'><span class='k'>Quantity</span><span class='v'>" + s.qty + "</span></div>" +
+      "<div class='row'><span class='k'>Risk : Reward</span><span class='v'>1 : " + rr.toFixed(1) + "</span></div>" +
+      "<div class='row'><span class='k'>Confidence</span><span class='v'>" + conf + "%</span></div>" +
+      "</div>" +
+      "<button class='exec-btn' data-exec='" + s.id + "'>⚡ Execute trade (SL + TP auto)</button>" +
+      "<p style='font-size:0.74rem;color:var(--faint);margin:8px 0 0'>Ye demo trade hai. Position SL/TP pe automatically close ho jaayega.</p>";
+  }
+
   function aiRespond(text) {
     var q = text.toLowerCase();
     var niftyTrend = trend("NIFTY 50");
     var trendWord = niftyTrend === "up" ? "<span class='g'>bullish ▲</span>" : niftyTrend === "down" ? "<span class='r'>bearish ▼</span>" : "<b>sideways →</b>";
     var np = fmt(pxOf("NIFTY 50"));
 
+    // AI trade prediction / auto-trade with compulsory SL/TP
+    if ((q.indexOf("trade") >= 0 && (q.indexOf("lo") >= 0 || q.indexOf("le") >= 0 || q.indexOf("karo") >= 0 || q.indexOf("suggest") >= 0 || q.indexOf("auto") >= 0)) || q.indexOf("predict") >= 0 || q.indexOf("signal") >= 0 || q.indexOf("kya lu") >= 0 || q.indexOf("kya khareed") >= 0) {
+      return signalCardHTML(makeSignal());
+    }
     if (q.indexOf("ema") >= 0) {
       return "<h4>📈 EMA Crossover Strategy — ready</h4>Aapke liye ek simple, beginner-friendly strategy bana di:" +
         "<div class='stratbox'>" +
@@ -814,7 +933,7 @@
     document.getElementById("setEmail").textContent = localStorage.getItem("ts_app_session") || CREDS.email;
 
     // seed AI greeting
-    pushBubble("Namaste Ali! 👋 Main aapka <b>AI Trading Coach</b> hoon. Live market se connected hoon. Kuch bhi poocho — jaise <b>\"EMA Strategy banao\"</b> ya <b>\"Market sideways hai kya?\"</b>", "ai");
+    pushBubble("Namaste Ali! 👋 Main aapka <b>AI Trading Coach</b> hoon, live market se connected. Main aapke liye trade bhi <b>predict karke le sakta hoon</b> — SL aur TP compulsory set honge. Try karo: <b>\"AI trade lo\"</b> 🎯 ya <b>\"EMA Strategy banao\"</b>", "ai");
 
     renderAll();
 
@@ -854,6 +973,31 @@
     // AI
     document.getElementById("aiForm").addEventListener("submit", function (e) { e.preventDefault(); var inp = document.getElementById("aiInput"); sendAI(inp.value); inp.value = ""; });
     document.querySelectorAll(".ai-chips button").forEach(function (b) { b.addEventListener("click", function () { sendAI(b.getAttribute("data-msg")); }); });
+    // AI execute-trade button (delegated)
+    aiScroll.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-exec]"); if (!b || b.classList.contains("done")) return;
+      var sig = pendingSignals[b.getAttribute("data-exec")]; if (!sig) return;
+      openPosFromSignal(sig);
+      b.classList.add("done"); b.textContent = "✓ Trade executed (SL + TP active)";
+    });
+
+    // Order ticket: Auto SL/TP fill (1.5% risk, 1:2 reward, long assumption)
+    document.getElementById("autoSltp").addEventListener("click", function () {
+      var px = pxOf(document.getElementById("orderSym").value);
+      document.getElementById("orderSL").value = (px * 0.985).toFixed(2);
+      document.getElementById("orderTP").value = (px * 1.03).toFixed(2);
+      toast("Auto SL/TP set (long). SELL ke liye values invert karo.");
+    });
+
+    // Sidebar hide/show
+    document.getElementById("navToggle").addEventListener("click", function () { document.body.classList.toggle("nav-collapsed"); requestAnimationFrame(drawCharts); });
+
+    // Fullscreen chart (trade view)
+    var maxBtn = document.getElementById("maxBtn");
+    var trCard = maxBtn.closest(".chart-card");
+    function toggleMax() { var on = trCard.classList.toggle("max"); document.body.classList.toggle("has-max", on); requestAnimationFrame(drawCharts); }
+    maxBtn.addEventListener("click", toggleMax);
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && trCard.classList.contains("max")) toggleMax(); });
 
     // subscription
     document.querySelectorAll("[data-choose]").forEach(function (b) { b.addEventListener("click", function () { state.plan = b.getAttribute("data-choose"); save(); renderAll(); toast(state.plan + " plan selected ✓ (demo)", "ok"); }); });
