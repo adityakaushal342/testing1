@@ -560,7 +560,18 @@
     { sym: "BTC/INR",    ex: "Crypto", price: 5240000,  vol: 0.0018 }
   ];
   var mkt = {}; // sym -> {price, open, series[], vol, ex}
-  INSTRUMENTS.forEach(function (i) { mkt[i.sym] = { price: i.price, open: i.price, prev: i.price, series: [i.price], vol: i.vol, ex: i.ex }; });
+  // pseudo-gaussian tick + occasional spike → realistic market feel
+  function gauss() { return (Math.random() + Math.random() + Math.random() - 1.5) / 1.5; }
+  function seedSeries(start, vol, n) {
+    var arr = [start], p = start;
+    for (var i = 1; i < n; i++) { var d = gauss() * vol; if (Math.random() < 0.02) d += (Math.random() - 0.5) * vol * 8; p = Math.max(p * (1 + d), 0.01); arr.push(p); }
+    return arr;
+  }
+  INSTRUMENTS.forEach(function (i) {
+    var s = seedSeries(i.price, i.vol, 1200);
+    mkt[i.sym] = { price: s[s.length - 1], open: s[Math.max(0, s.length - 375)], prev: s[s.length - 2], series: s, vol: i.vol, ex: i.ex };
+  });
+  var totalTicks = 1200; // absolute tick counter for stable candle buckets
 
   // ===================== STATE =====================
   var state = { cash: START_CASH, positions: [], history: [], journal: [], notes: "", plan: "Free" };
@@ -791,55 +802,90 @@
   function renderAll() { renderStats(); renderPositions(); renderHistory(); renderJournal(); renderMarkets(); renderOrderTicket(); renderTradeHeader(); document.getElementById("setPlan").textContent = state.plan; }
 
   // ===================== CHARTS =====================
-  function drawChart(canvasId, sym) {
+  var chartTF = "5m";
+  var TICKS_PER_CANDLE = { "1m": 2, "5m": 6, "15m": 14, "1H": 30 };
+  // fixed-bucket candles keyed to absolute tick index → newest candle grows, older ones stay locked (real-market behaviour)
+  function buildCandles(sym, tf, maxN) {
+    var k = TICKS_PER_CANDLE[tf] || 6;
+    var s = mkt[sym].series; var L = s.length; var base = totalTicks - L;
+    var lastC = Math.floor((totalTicks - 1) / k); var out = [];
+    for (var c = lastC; c >= 0 && out.length < (maxN || 64); c--) {
+      var pStart = Math.max(0, c * k - base);
+      var pEnd = Math.min(L, c * k + k - base);
+      if (pEnd <= pStart) break;
+      var seg = s.slice(pStart, pEnd);
+      out.unshift({ o: seg[0], c: seg[seg.length - 1], h: Math.max.apply(null, seg), l: Math.min.apply(null, seg) });
+    }
+    return out;
+  }
+  function fmtAxis(v) {
+    if (v >= 100000) return (v / 100000).toFixed(2) + "L";
+    if (v >= 1000) return v.toFixed(0);
+    return v.toFixed(2);
+  }
+  function drawChart(canvasId, sym, tf) {
     var canvas = document.getElementById(canvasId); if (!canvas) return;
     var ctx = canvas.getContext("2d"); var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var r = canvas.getBoundingClientRect(); var W = r.width, H = r.height;
-    if (!W) return;
+    var r = canvas.getBoundingClientRect(); var W = r.width, H = r.height; if (!W) return;
     canvas.width = W * dpr; canvas.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     var cs = getComputedStyle(document.documentElement);
+    var font = cs.getPropertyValue("--font").trim() || "sans-serif";
     var gridc = cs.getPropertyValue("--grid-line").trim() || "rgba(148,163,184,0.07)";
-    var series = mkt[sym].series;
-    ctx.strokeStyle = gridc; ctx.lineWidth = 1;
-    for (var g = 0; g <= 4; g++) { var y = (H / 4) * g; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-    if (series.length < 2) return;
-    var lo = Math.min.apply(null, series), hi = Math.max.apply(null, series);
+    var green = cs.getPropertyValue("--green").trim() || "#22C55E";
+    var red = cs.getPropertyValue("--red").trim() || "#EF4444";
+    var faint = cs.getPropertyValue("--faint").trim() || "#64748B";
+    var axisW = 58, plotW = W - axisW;
+    var candles = buildCandles(sym, tf, Math.max(20, Math.floor(plotW / 9)));
+    if (!candles.length) return;
+    var lo = Infinity, hi = -Infinity;
+    candles.forEach(function (c) { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
     var pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
-    var n = series.length, dx = W / (n - 1);
     function py(v) { return H - ((v - lo) / (hi - lo)) * H; }
-    var up = series[n - 1] >= series[0];
-    var col = up ? (cs.getPropertyValue("--green").trim() || "#22C55E") : (cs.getPropertyValue("--red").trim() || "#EF4444");
-    // area
-    ctx.beginPath(); ctx.moveTo(0, py(series[0]));
-    for (var i = 1; i < n; i++) ctx.lineTo(i * dx, py(series[i]));
-    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
-    var grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, up ? "rgba(34,197,94,0.28)" : "rgba(239,68,68,0.28)");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = grad; ctx.fill();
-    // line
-    ctx.beginPath(); ctx.moveTo(0, py(series[0]));
-    for (var j = 1; j < n; j++) ctx.lineTo(j * dx, py(series[j]));
-    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
-    // endpoint dot
-    ctx.beginPath(); ctx.arc(W, py(series[n - 1]), 3.5, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    // grid + right price axis
+    ctx.lineWidth = 1; ctx.textBaseline = "middle"; ctx.font = "10px " + font;
+    for (var g = 0; g <= 4; g++) {
+      var y = (H / 4) * g;
+      ctx.strokeStyle = gridc; ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(plotW, y + 0.5); ctx.stroke();
+      ctx.fillStyle = faint; ctx.textAlign = "left";
+      ctx.fillText(fmtAxis(hi - (hi - lo) * (g / 4)), plotW + 6, Math.min(H - 6, Math.max(6, y)));
+    }
+    // candles
+    var n = candles.length, slot = plotW / n, bw = Math.max(2, slot * 0.62);
+    candles.forEach(function (c, i) {
+      var x = i * slot + slot / 2, up = c.c >= c.o, col = up ? green : red;
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, py(c.h)); ctx.lineTo(x, py(c.l)); ctx.stroke();
+      var yo = py(c.o), yc = py(c.c);
+      ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(Math.abs(yc - yo), 1.5));
+    });
+    // current-price dashed line + tag
+    var last = candles[n - 1], lp = last.c, ly = py(lp), lcol = last.c >= last.o ? green : red;
+    ctx.setLineDash([4, 4]); ctx.globalAlpha = 0.75; ctx.strokeStyle = lcol; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(plotW, ly); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    var tagH = 16, tagY = Math.max(tagH / 2, Math.min(H - tagH / 2, ly));
+    ctx.fillStyle = lcol; ctx.fillRect(plotW, tagY - tagH / 2, axisW, tagH);
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "bold 10px " + font;
+    ctx.fillText(fmtAxis(lp), plotW + axisW / 2, tagY);
   }
   function drawCharts() {
-    if (document.getElementById("view-dashboard").classList.contains("active")) drawChart("dashChart", selectedSym);
-    if (document.getElementById("view-trade").classList.contains("active")) drawChart("trChart", selectedSym);
+    if (document.getElementById("view-dashboard").classList.contains("active")) drawChart("dashChart", selectedSym, "15m");
+    if (document.getElementById("view-trade").classList.contains("active")) drawChart("trChart", selectedSym, chartTF);
   }
 
   // ===================== MARKET SIM =====================
   function tick() {
     INSTRUMENTS.forEach(function (i) {
       var m = mkt[i.sym];
-      var drift = (Math.random() - 0.5) * 2 * m.vol + 0.00002; // tiny upward bias
+      var drift = gauss() * m.vol;
+      if (Math.random() < 0.02) drift += (Math.random() - 0.5) * m.vol * 8; // occasional spike
       m.prev = m.price;
       m.price = Math.max(m.price * (1 + drift), 0.01);
       m.series.push(m.price);
-      if (m.series.length > 90) m.series.shift();
+      if (m.series.length > 1200) m.series.shift();
     });
+    totalTicks++;
     if (document.body.classList.contains("authed")) checkSLTP();
     if (document.body.classList.contains("authed")) {
       renderStats(); renderPositions(); renderTradeHeader(); renderOrderTicket();
@@ -999,6 +1045,16 @@
         document.getElementById("tab-" + tb.getAttribute("data-tab")).classList.add("active");
       });
     });
+
+    // timeframe buttons (1m / 5m / 15m / 1H)
+    var tfGroup = document.querySelector("#view-trade .tf-group");
+    if (tfGroup) {
+      tfGroup.addEventListener("click", function (e) {
+        var b = e.target.closest(".tf"); if (!b) return;
+        tfGroup.querySelectorAll(".tf").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active"); chartTF = b.textContent.trim(); drawCharts();
+      });
+    }
 
     // qty chips
     document.querySelectorAll(".qchips button").forEach(function (b) { b.addEventListener("click", function () { document.getElementById("orderQty").value = b.getAttribute("data-q"); renderOrderTicket(); }); });
