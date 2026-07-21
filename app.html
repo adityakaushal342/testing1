@@ -145,7 +145,9 @@
   .tf { padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: var(--muted); cursor: pointer; border: none; background: transparent; }
   .tf.active { background: var(--blue); color: #fff; }
   .chart-body { position: relative; height: 300px; }
-  .chart-body canvas { width: 100%; height: 100%; display: block; }
+  .chart-body canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+  .chart-hint { padding: 9px 14px; border-top: 1px solid var(--border); font-size: 0.74rem; color: var(--muted); }
+  .chart-card.max .chart-hint { display: none; }
 
   .order-card { padding: 16px; }
   .order-card h3 { font-size: 0.95rem; margin: 0 0 14px; }
@@ -396,6 +398,7 @@
               <button class="chart-tool-btn" id="maxBtn" title="Fullscreen chart (Esc to exit)" aria-label="Fullscreen chart"><svg id="maxIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
             </div>
             <div class="chart-body"><canvas id="trChart"></canvas></div>
+            <div class="chart-hint">💡 Aapki open positions ki <b style="color:var(--blue)">Entry</b> / <b style="color:var(--red)">SL</b> / <b style="color:var(--green)">TP</b> lines chart pe dikhti hain — <b>SL/TP line ko drag</b> karke adjust karo (⇕).</div>
           </div>
           <div class="panel">
             <div class="tabs">
@@ -550,14 +553,38 @@
   var CREDS = { email: "demo@tradesmart.ai", pass: "demo123" };
   var START_CASH = 1000000;
   var INSTRUMENTS = [
-    { sym: "NIFTY 50",   ex: "NSE",    price: 22418.75, vol: 0.0006 },
-    { sym: "RELIANCE",   ex: "NSE",    price: 2918.50,  vol: 0.0009 },
-    { sym: "TCS",        ex: "NSE",    price: 3939.90,  vol: 0.0008 },
-    { sym: "INFY",       ex: "NSE",    price: 1642.30,  vol: 0.0011 },
-    { sym: "HDFCBANK",   ex: "NSE",    price: 1685.15,  vol: 0.0009 },
-    { sym: "SBIN",       ex: "NSE",    price: 812.40,   vol: 0.0013 },
-    { sym: "TATAMOTORS", ex: "NSE",    price: 985.60,   vol: 0.0015 },
-    { sym: "BTC/INR",    ex: "Crypto", price: 5240000,  vol: 0.0018 }
+    // Indices
+    { sym: "NIFTY 50",   ex: "NSE Index", price: 22418.75, vol: 0.0006 },
+    { sym: "BANKNIFTY",  ex: "NSE Index", price: 48210.00, vol: 0.0008 },
+    { sym: "FINNIFTY",   ex: "NSE Index", price: 21540.00, vol: 0.0008 },
+    { sym: "SENSEX",     ex: "BSE Index", price: 73900.00, vol: 0.0006 },
+    // NSE stocks
+    { sym: "RELIANCE",   ex: "NSE", price: 2951.00,  vol: 0.0009 },
+    { sym: "TCS",        ex: "NSE", price: 3902.00,  vol: 0.0008 },
+    { sym: "HDFCBANK",   ex: "NSE", price: 1681.00,  vol: 0.0009 },
+    { sym: "INFY",       ex: "NSE", price: 1648.00,  vol: 0.0011 },
+    { sym: "ICICIBANK",  ex: "NSE", price: 1122.00,  vol: 0.0010 },
+    { sym: "SBIN",       ex: "NSE", price: 820.00,   vol: 0.0012 },
+    { sym: "BHARTIARTL", ex: "NSE", price: 1284.00,  vol: 0.0010 },
+    { sym: "ITC",        ex: "NSE", price: 434.50,   vol: 0.0009 },
+    { sym: "LT",         ex: "NSE", price: 3612.00,  vol: 0.0010 },
+    { sym: "KOTAKBANK",  ex: "NSE", price: 1776.00,  vol: 0.0010 },
+    { sym: "AXISBANK",   ex: "NSE", price: 1148.00,  vol: 0.0011 },
+    { sym: "HINDUNILVR", ex: "NSE", price: 2402.00,  vol: 0.0008 },
+    { sym: "BAJFINANCE", ex: "NSE", price: 7180.00,  vol: 0.0012 },
+    { sym: "MARUTI",     ex: "NSE", price: 12820.00, vol: 0.0010 },
+    { sym: "TATAMOTORS", ex: "NSE", price: 988.00,   vol: 0.0015 },
+    { sym: "WIPRO",      ex: "NSE", price: 478.00,   vol: 0.0012 },
+    { sym: "ADANIENT",   ex: "NSE", price: 3110.00,  vol: 0.0018 },
+    { sym: "TATASTEEL",  ex: "NSE", price: 165.30,   vol: 0.0014 },
+    { sym: "SUNPHARMA",  ex: "NSE", price: 1552.00,  vol: 0.0010 },
+    { sym: "ONGC",       ex: "NSE", price: 274.50,   vol: 0.0013 },
+    { sym: "NTPC",       ex: "NSE", price: 362.00,   vol: 0.0012 },
+    { sym: "POWERGRID",  ex: "NSE", price: 316.00,   vol: 0.0011 },
+    { sym: "HCLTECH",    ex: "NSE", price: 1452.00,  vol: 0.0010 },
+    { sym: "ASIANPAINT", ex: "NSE", price: 2895.00,  vol: 0.0010 },
+    { sym: "TITAN",      ex: "NSE", price: 3405.00,  vol: 0.0011 },
+    { sym: "ULTRACEMCO", ex: "NSE", price: 10510.00, vol: 0.0010 }
   ];
   var mkt = {}; // sym -> {price, open, series[], vol, ex}
   // pseudo-gaussian tick + occasional spike → realistic market feel
@@ -803,6 +830,8 @@
 
   // ===================== CHARTS =====================
   var chartTF = "5m";
+  var trMap = null, trHandles = [], dragging = null; // chart drag state (trade canvas)
+  function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   var TICKS_PER_CANDLE = { "1m": 2, "5m": 6, "15m": 14, "1H": 30 };
   // fixed-bucket candles keyed to absolute tick index → newest candle grows, older ones stay locked (real-market behaviour)
   function buildCandles(sym, tf, maxN) {
@@ -835,11 +864,15 @@
     var green = cs.getPropertyValue("--green").trim() || "#22C55E";
     var red = cs.getPropertyValue("--red").trim() || "#EF4444";
     var faint = cs.getPropertyValue("--faint").trim() || "#64748B";
+    var blue = cs.getPropertyValue("--blue").trim() || "#2563EB";
     var axisW = 58, plotW = W - axisW;
     var candles = buildCandles(sym, tf, Math.max(20, Math.floor(plotW / 9)));
     if (!candles.length) return;
     var lo = Infinity, hi = -Infinity;
     candles.forEach(function (c) { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+    // extend range so this symbol's Entry/SL/TP lines are always visible
+    var myPos = state.positions.filter(function (p) { return p.sym === sym; });
+    myPos.forEach(function (p) { [p.entry, p.sl, p.tp].forEach(function (v) { if (v) { if (v < lo) lo = v; if (v > hi) hi = v; } }); });
     var pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
     function py(v) { return H - ((v - lo) / (hi - lo)) * H; }
     // grid + right price axis
@@ -859,6 +892,27 @@
       var yo = py(c.o), yc = py(c.c);
       ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(Math.abs(yc - yo), 1.5));
     });
+    // position overlay lines (Entry / SL / TP) for this symbol
+    var handles = [];
+    function drawPosLine(price, color, label, grab) {
+      var y = py(price);
+      ctx.setLineDash(grab ? [6, 4] : [3, 4]); ctx.globalAlpha = 0.9; ctx.strokeStyle = color; ctx.lineWidth = grab ? 1.4 : 1;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(plotW, y); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.font = "bold 10px " + font; ctx.textBaseline = "middle";
+      var txt = (grab ? "⇕ " : "") + label + " " + fmtAxis(price);
+      var tw = ctx.measureText(txt).width + 14;
+      var ty = Math.max(9, Math.min(H - 9, y));
+      ctx.fillStyle = color; roundRect(ctx, 2, ty - 8, tw, 16, 4); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.textAlign = "left"; ctx.fillText(txt, 9, ty);
+      return y;
+    }
+    myPos.forEach(function (p) {
+      drawPosLine(p.entry, blue, (p.side === "BUY" ? "▲ ENTRY" : "▼ ENTRY"), false);
+      if (p.sl) handles.push({ id: p.id, field: "sl", y: drawPosLine(p.sl, red, "SL", true) });
+      if (p.tp) handles.push({ id: p.id, field: "tp", y: drawPosLine(p.tp, green, "TP", true) });
+    });
+
     // current-price dashed line + tag
     var last = candles[n - 1], lp = last.c, ly = py(lp), lcol = last.c >= last.o ? green : red;
     ctx.setLineDash([4, 4]); ctx.globalAlpha = 0.75; ctx.strokeStyle = lcol; ctx.lineWidth = 1;
@@ -868,6 +922,9 @@
     ctx.fillStyle = lcol; ctx.fillRect(plotW, tagY - tagH / 2, axisW, tagH);
     ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "bold 10px " + font;
     ctx.fillText(fmtAxis(lp), plotW + axisW / 2, tagY);
+
+    // expose map + handles for drag interaction (trade canvas only)
+    if (canvasId === "trChart") { trMap = { lo: lo, hi: hi, H: H, plotW: plotW, sym: sym }; trHandles = handles; }
   }
   function drawCharts() {
     if (document.getElementById("view-dashboard").classList.contains("active")) drawChart("dashChart", selectedSym, "15m");
@@ -1104,6 +1161,33 @@
     function toggleMax() { var on = trCard.classList.toggle("max"); document.body.classList.toggle("has-max", on); requestAnimationFrame(drawCharts); }
     maxBtn.addEventListener("click", toggleMax);
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && trCard.classList.contains("max")) toggleMax(); });
+
+    // Drag SL/TP directly on the trade chart
+    var trCanvas = document.getElementById("trChart");
+    function evtPos(e) { var r = trCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+    function handleAt(y) { var best = null, bd = 9; trHandles.forEach(function (h) { var d = Math.abs(h.y - y); if (d < bd) { bd = d; best = h; } }); return best; }
+    trCanvas.addEventListener("pointerdown", function (e) {
+      var h = handleAt(evtPos(e).y); if (!h) return;
+      dragging = { id: h.id, field: h.field }; trCanvas.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    trCanvas.addEventListener("pointermove", function (e) {
+      var pt = evtPos(e);
+      if (dragging && trMap) {
+        var price = trMap.lo + (1 - pt.y / trMap.H) * (trMap.hi - trMap.lo);
+        var p = state.positions.filter(function (x) { return x.id === dragging.id; })[0];
+        if (!p) { dragging = null; return; }
+        var gap = p.entry * 0.0005;
+        if (dragging.field === "sl") { price = p.side === "BUY" ? Math.min(price, p.entry - gap) : Math.max(price, p.entry + gap); }
+        else { price = p.side === "BUY" ? Math.max(price, p.entry + gap) : Math.min(price, p.entry - gap); }
+        p[dragging.field] = Math.max(price, 0.01);
+        drawCharts(); renderPositions();
+      } else {
+        trCanvas.style.cursor = handleAt(pt.y) ? "ns-resize" : "crosshair";
+      }
+    });
+    function endDrag() { if (dragging) { dragging = null; save(); renderAll(); toast("SL/TP updated ✓", "ok"); } }
+    trCanvas.addEventListener("pointerup", endDrag);
+    trCanvas.addEventListener("pointercancel", endDrag);
 
     // subscription
     document.querySelectorAll("[data-choose]").forEach(function (b) { b.addEventListener("click", function () { state.plan = b.getAttribute("data-choose"); save(); renderAll(); toast(state.plan + " plan selected ✓ (demo)", "ok"); }); });
