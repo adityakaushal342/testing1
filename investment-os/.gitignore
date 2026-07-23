@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# env
+.env
+*.local
+
+# build output
+dist/
+build/
+frontend/dist/
+
+# prisma
+backend/prisma/*.db
+backend/prisma/migrations/dev.db*
+
+# logs
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/

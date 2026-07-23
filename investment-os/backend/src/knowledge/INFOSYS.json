@@ -1,0 +1,20 @@
+{
+  "symbol": "INFOSYS",
+  "name": "Infosys Ltd",
+  "sector": "Information Technology",
+  "moat": "Scaled global IT services delivery with deep enterprise relationships and a growing AI/cloud practice.",
+  "growthFactors": [
+    { "factor": "AI & generative-AI deal pipeline", "weight": 0.25, "signal": "Enterprise AI adoption drives new transformation deals." },
+    { "factor": "US / global IT spending", "weight": 0.25, "signal": "Healthy client tech budgets lift volumes and pricing." },
+    { "factor": "Large deal wins (TCV)", "weight": 0.20, "signal": "Rising total contract value signals future revenue." },
+    { "factor": "Cloud & digital revenue mix", "weight": 0.15, "signal": "Higher digital mix supports growth and margins." },
+    { "factor": "Weak rupee / favourable USD-INR", "weight": 0.15, "signal": "A weaker rupee expands reported margins on USD revenue." }
+  ],
+  "negativeFactors": [
+    { "factor": "US / global recession", "weight": 0.30, "signal": "Client budget cuts slow discretionary IT spend." },
+    { "factor": "Weak deal / TCV momentum", "weight": 0.25, "signal": "Slowing bookings pressure forward guidance." },
+    { "factor": "Strong rupee", "weight": 0.20, "signal": "A stronger rupee erodes reported USD-revenue margins." },
+    { "factor": "Wage inflation & attrition", "weight": 0.15, "signal": "Rising employee costs squeeze margins." },
+    { "factor": "Guidance cut", "weight": 0.10, "signal": "Lowered revenue-growth guidance dents sentiment." }
+  ]
+}

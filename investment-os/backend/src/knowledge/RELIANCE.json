@@ -1,0 +1,21 @@
+{
+  "symbol": "RELIANCE",
+  "name": "Reliance Industries Ltd",
+  "sector": "Energy / Conglomerate",
+  "moat": "Vertically integrated energy business funding fast-growing consumer and digital arms (Jio, Retail).",
+  "growthFactors": [
+    { "factor": "Jio subscriber & ARPU growth", "weight": 0.25, "signal": "Rising ARPU and 5G monetisation lift high-margin digital revenue." },
+    { "factor": "Retail store & e-commerce expansion", "weight": 0.20, "signal": "New store additions and JioMart scale grow the consumer segment." },
+    { "factor": "Oil-to-chemicals (O2C) margins", "weight": 0.20, "signal": "Strong GRMs / petchem spreads boost cash flows." },
+    { "factor": "5G rollout & enterprise services", "weight": 0.15, "signal": "5G capex converting to enterprise & fixed-wireless revenue." },
+    { "factor": "New energy (solar, hydrogen) pipeline", "weight": 0.10, "signal": "Green energy giga-factories add a long-term optionality leg." },
+    { "factor": "Deleveraging / stable balance sheet", "weight": 0.10, "signal": "Falling net debt improves financial flexibility." }
+  ],
+  "negativeFactors": [
+    { "factor": "Crude oil price crash", "weight": 0.25, "signal": "Sharp fall in crude compresses O2C realisations." },
+    { "factor": "High capex / rising debt", "weight": 0.25, "signal": "Heavy new-energy and telecom capex can raise leverage." },
+    { "factor": "Regulatory / government policy", "weight": 0.20, "signal": "Telecom tariff regulation or windfall taxes hit margins." },
+    { "factor": "Weak quarterly earnings", "weight": 0.20, "signal": "Miss on profit / EBITDA vs estimates." },
+    { "factor": "Telecom price war", "weight": 0.10, "signal": "Aggressive competitor pricing caps ARPU growth." }
+  ]
+}

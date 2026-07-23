@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QX Broker — Strategy Analysis & Demo Journal (Learning Tool)</title>
+<script>try{var _t=localStorage.getItem("qx_theme_v1");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel-2: #f0f3fa;
+    --border: #dfe4ee;
+    --text: #1a2233;
+    --muted: #5a6579;
+    --accent: #2f6fed;
+    --accent-soft: #e7effd;
+    --up: #1a9e6b;
+    --up-soft: #e2f6ee;
+    --down: #d64545;
+    --down-soft: #fbe6e6;
+    --warn: #b8860b;
+    --warn-soft: #fbf3dd;
+    --avoid: #7a51c9;
+    --avoid-soft: #efe8fb;
+    --shadow: 0 1px 3px rgba(20,30,55,.08), 0 6px 20px rgba(20,30,55,.05);
+    --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #0e1320;
+      --panel: #161d2e;
+      --panel-2: #1d263a;
+      --border: #2a3346;
+      --text: #e7ecf5;
+      --muted: #9aa6bd;
+      --accent: #5b8dff;
+      --accent-soft: #1b2740;
+      --up: #35c98a;
+      --up-soft: #142a20;
+      --down: #f2696a;
+      --down-soft: #2c1a1c;
+      --warn: #e0b64d;
+      --warn-soft: #2c2716;
+      --avoid: #b492f0;
+      --avoid-soft: #241d38;
+      --shadow: 0 1px 3px rgba(0,0,0,.4), 0 8px 26px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f4f6fb; --panel:#fff; --panel-2:#f0f3fa; --border:#dfe4ee; --text:#1a2233; --muted:#5a6579;
+    --accent:#2f6fed; --accent-soft:#e7effd; --up:#1a9e6b; --up-soft:#e2f6ee; --down:#d64545; --down-soft:#fbe6e6;
+    --warn:#b8860b; --warn-soft:#fbf3dd; --avoid:#7a51c9; --avoid-soft:#efe8fb;
+    --shadow:0 1px 3px rgba(20,30,55,.08),0 6px 20px rgba(20,30,55,.05);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0e1320; --panel:#161d2e; --panel-2:#1d263a; --border:#2a3346; --text:#e7ecf5; --muted:#9aa6bd;
+    --accent:#5b8dff; --accent-soft:#1b2740; --up:#35c98a; --up-soft:#142a20; --down:#f2696a; --down-soft:#2c1a1c;
+    --warn:#e0b64d; --warn-soft:#2c2716; --avoid:#b492f0; --avoid-soft:#241d38;
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 8px 26px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 20px 16px 80px; }
+  h1 { font-size: clamp(1.4rem, 3vw, 2rem); margin: 0 0 4px; letter-spacing: -.02em; }
+  h2 { font-size: 1.15rem; margin: 0 0 14px; letter-spacing: -.01em; }
+  h3 { font-size: .98rem; margin: 0 0 8px; }
+  p { margin: 0 0 10px; }
+  a { color: var(--accent); }
+  .sub { color: var(--muted); font-size: .95rem; }
+
+  header.top {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+    flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .brand-badge {
+    display: inline-flex; align-items: center; gap: 8px; font-weight: 700;
+    background: var(--accent-soft); color: var(--accent);
+    padding: 4px 10px; border-radius: 999px; font-size: .78rem; margin-bottom: 10px;
+  }
+  .theme-toggle {
+    border: 1px solid var(--border); background: var(--panel); color: var(--text);
+    border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: .85rem;
+  }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow);
+  }
+
+  .risk-banner {
+    border: 1px solid var(--down); background: var(--down-soft);
+    border-radius: var(--radius); padding: 16px 18px; margin-bottom: 18px;
+  }
+  .risk-banner strong { color: var(--down); }
+  .risk-banner ul { margin: 8px 0 0; padding-left: 20px; }
+  .risk-banner li { margin-bottom: 4px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
+
+  .ind {
+    background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px;
+  }
+  .ind h3 { color: var(--accent); }
+  .ind p { font-size: .88rem; color: var(--muted); margin: 0; }
+
+  .ref { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .ref h3 { margin-bottom: 8px; }
+  .ref ul { margin: 0; padding-left: 18px; font-size: .88rem; }
+  .ref ul li { margin-bottom: 5px; }
+  .ref.buy { border-left: 4px solid var(--up); }
+  .ref.buy h3 { color: var(--up); }
+  .ref.sell { border-left: 4px solid var(--down); }
+  .ref.sell h3 { color: var(--down); }
+  .ref.avoid { border-left: 4px solid var(--avoid); }
+  .ref.avoid h3 { color: var(--avoid); }
+  .avoid-grid { columns: 2; margin: 0; padding-left: 18px; font-size: .88rem; }
+  .avoid-grid li { margin-bottom: 5px; }
+  @media (max-width: 720px){ .avoid-grid { columns: 1; } }
+
+  label.field { display: block; margin-bottom: 12px; font-size: .85rem; color: var(--muted); }
+  label.field span.lbl { display: block; margin-bottom: 5px; font-weight: 600; color: var(--text); }
+  select, input[type="text"], input[type="number"], textarea {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text); border-radius: 10px; font-size: .9rem;
+    font-family: inherit;
+  }
+  select:focus, input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  textarea { resize: vertical; min-height: 42px; }
+
+  button.btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 11px 18px; font-size: .92rem; font-weight: 600; cursor: pointer;
+  }
+  button.btn:hover { filter: brightness(1.06); }
+  button.btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  button.btn.small { padding: 6px 12px; font-size: .8rem; }
+  button.btn.danger { background: var(--down); }
+
+  .bias-out {
+    margin-top: 16px; border-radius: 12px; padding: 16px; border: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .bias-out.buy { border-color: var(--up); background: var(--up-soft); }
+  .bias-out.sell { border-color: var(--down); background: var(--down-soft); }
+  .bias-out.avoid { border-color: var(--avoid); background: var(--avoid-soft); }
+  .bias-out.neutral { border-color: var(--warn); background: var(--warn-soft); }
+  .bias-title { font-weight: 800; font-size: 1.05rem; margin-bottom: 6px; display:flex; align-items:center; gap:8px;}
+  .bias-out.buy .bias-title { color: var(--up); }
+  .bias-out.sell .bias-title { color: var(--down); }
+  .bias-out.avoid .bias-title { color: var(--avoid); }
+  .bias-out.neutral .bias-title { color: var(--warn); }
+  .bias-reasons { margin: 8px 0 0; padding-left: 18px; font-size: .88rem; }
+  .bias-reasons li { margin-bottom: 3px; }
+  .disclaimer-inline { font-size: .8rem; color: var(--muted); margin-top: 10px; font-style: italic; }
+
+  .stat-tiles { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  @media (max-width: 720px){ .stat-tiles { grid-template-columns: 1fr 1fr; } }
+  .tile { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align:center;}
+  .tile .num { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+  .tile .cap { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px;}
+  .tile.good .num { color: var(--up); }
+  .tile.bad .num { color: var(--down); }
+
+  .progress { height: 10px; background: var(--panel-2); border-radius: 999px; overflow: hidden; border:1px solid var(--border); margin-top: 6px;}
+  .progress > span { display:block; height:100%; background: var(--accent); width:0%; transition: width .3s; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  th, td { padding: 8px 9px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .68rem; letter-spacing: .04em;}
+  td.win { color: var(--up); font-weight: 700; }
+  td.loss { color: var(--down); font-weight: 700; }
+  tr:last-child td { border-bottom: none; }
+  .del-x { background:none; border:none; color:var(--down); cursor:pointer; font-size:1rem; padding:0 4px;}
+
+  .verdict { border-radius: 12px; padding: 16px; margin-top: 14px; border: 1px solid var(--border); background: var(--panel-2);}
+  .verdict.pass { border-color: var(--warn); background: var(--warn-soft); }
+  .verdict.fail { border-color: var(--down); background: var(--down-soft); }
+  .verdict h3 { margin-top: 0; }
+
+  details { border: 1px solid var(--border); border-radius: 10px; padding: 4px 12px; margin-bottom: 8px; background: var(--panel-2);}
+  details summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+  details p, details ul { font-size: .88rem; color: var(--muted); }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .muted-note { font-size: .8rem; color: var(--muted); }
+  footer { text-align:center; color: var(--muted); font-size: .8rem; margin-top: 30px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; font-weight:600;}
+  .pill.up { background: var(--up-soft); color: var(--up);}
+  .pill.down { background: var(--down-soft); color: var(--down);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <span class="brand-badge">📊 Learning Tool · Not Financial Advice</span>
+      <h1>QX Broker Strategy — Analysis &amp; Demo Journal</h1>
+      <p class="sub">EMA 20 / EMA 50 / RSI 14 / Volume framework ko structure karke seekhne, aur apne <strong>demo trades</strong> ko track karne ke liye. Yeh koi auto buy/sell signal machine nahi hai.</p>
+    </div>
+    <button class="theme-toggle" id="themeBtn" title="Toggle theme">🌓 Theme</button>
+  </header>
+
+  <!-- RISK BANNER -->
+  <div class="risk-banner">
+    <strong>⚠️ Padho zaroor — Reality check</strong>
+    <ul>
+      <li>Binary options (2-min expiry) <strong>bahut high-risk</strong> hai. Zyaadatar retail traders paisa <strong>lose</strong> karte hain.</li>
+      <li>Koi bhi indicator combo 2-min expiry par consistent accuracy <strong>guarantee nahi</strong> karta. Yeh tool sirf analysis ko organize karta hai — yeh tumhare liye trade decide nahi karta.</li>
+      <li><strong>20 demo trades ek chhota sample hai</strong> — luck se accha result aa sakta hai. Isse yeh proof nahi hota ki strategy real me chalegi (neeche ki maths dekho).</li>
+      <li>Demo aur real account alag hote hain: real me emotions, execution aur asli paisa involved hota hai.</li>
+      <li><strong>Regulatory / legal risk:</strong> Kai deshon me retail binary options <strong>regulated nahi</strong> ya <strong>banned</strong> hain (jaise UK/EU me FCA aur ESMA ne retail ke liye ban kiya hai), aur bahut brokers offshore/unregulated hote hain. Apne region ke rules khud check karo — aur samjho ki aise brokers se paisa <strong>withdraw</strong> karna ya dispute karna mushkil ho sakta hai, chahe tum jeet bhi jao.</li>
+      <li>Yeh page educational hai. Real paisa lagane ka faisla poori tarah tumhara hai — main uske liye "haan/na" nahi keh sakta. Better: pehle skill build karo, risk sirf utna lo jo lose karne ka dar na ho.</li>
+    </ul>
+  </div>
+
+  <!-- FRAMEWORK -->
+  <section class="card">
+    <h2>1 · Framework — kya dekhna hai</h2>
+    <div class="grid-4">
+      <div class="ind">
+        <h3>EMA 20</h3>
+        <p>Short-term trend. Price iske upar/niche hone se recent momentum ka idea milta hai.</p>
+      </div>
+      <div class="ind">
+        <h3>EMA 50</h3>
+        <p>Main trend. EMA 20 iske upar = bullish structure, niche = bearish structure.</p>
+      </div>
+      <div class="ind">
+        <h3>RSI 14</h3>
+        <p>Momentum. 50 ke aas-paas (45–55) = weak/sideways. Upar = up-momentum, niche = down.</p>
+      </div>
+      <div class="ind">
+        <h3>Volume</h3>
+        <p>Spike = volatility/breakout ho sakta hai — par har spike reliable nahi. Confirmation ke liye.</p>
+      </div>
+    </div>
+    <p class="muted-note" style="margin-top:14px">
+      Golden rule: Trend tabhi "strong" jab price dono EMAs ki <strong>ek hi side</strong> ho aur EMAs clearly <strong>slope</strong> kar rahe hon. EMAs flat + price unhe baar-baar cross kare = sideways = skip.
+    </p>
+  </section>
+
+  <!-- REFERENCE -->
+  <section class="card">
+    <h2>2 · Reference — strong setups &amp; avoid conditions</h2>
+    <p class="sub">Yeh conditions batati hain ki analysis <strong>kab zyada strong</strong> hoti hai. Yeh guaranteed entry signals <strong>nahi</strong> hain — sab align hone par bhi outcome guaranteed nahi hota. Inhi conditions ko neeche wali checklist (section 3) verify karti hai. 2-min expiry sochne se pehle: pehle demo par journal karo.</p>
+    <div class="grid-2" style="align-items:start">
+      <div class="ref buy">
+        <h3>📈 Strong bullish analysis · UP context</h3>
+        <ul>
+          <li>Price EMA 20 aur EMA 50 <strong>dono ke upar</strong>.</li>
+          <li>EMA 20, EMA 50 ke <strong>upar</strong>.</li>
+          <li>Dono EMAs <strong>upward slope</strong> me.</li>
+          <li>RSI 50 se <strong>upar</strong>, momentum improve karta hua.</li>
+          <li>Price kisi <strong>support</strong> area se bounce dikhaye.</li>
+          <li>Market <strong>sideways na</strong> ho.</li>
+        </ul>
+      </div>
+      <div class="ref sell">
+        <h3>📉 Strong bearish analysis · DOWN context</h3>
+        <ul>
+          <li>Price EMA 20 aur EMA 50 <strong>dono ke niche</strong>.</li>
+          <li>EMA 20, EMA 50 ke <strong>niche</strong>.</li>
+          <li>Dono EMAs <strong>downward slope</strong> me.</li>
+          <li>RSI 50 se <strong>niche</strong>.</li>
+          <li>Price kisi <strong>resistance</strong> area se reject ho.</li>
+          <li>Market <strong>sideways na</strong> ho.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="ref avoid" style="margin-top:14px">
+      <h3>🚫 Trade avoid karne ke signs — in me skip behtar</h3>
+      <ul class="avoid-grid">
+        <li>EMAs <strong>flat</strong> hain.</li>
+        <li>Price EMAs ko <strong>baar-baar cross</strong> kar raha.</li>
+        <li>RSI lagbhag <strong>50 ke aas-paas</strong> (45–55).</li>
+        <li>Candles <strong>chhoti aur overlapping</strong>.</li>
+        <li><strong>High-impact news</strong> ke aas-paas.</li>
+      </ul>
+    </div>
+    <p class="disclaimer-inline">Yaad rahe: yeh analysis-strength ke signs hain, "abhi trade karo" wale signals nahi. Koi accuracy % nahi — kyunki 2-min binary par koi bharosemand accuracy hoti hi nahi. Sab align ho tab bhi outcome guaranteed nahi.</p>
+  </section>
+
+  <!-- CHECKLIST -->
+  <section class="card">
+    <h2>3 · Analysis Checklist — apni observation daalo</h2>
+    <p class="sub">Chart par abhi jo dikh raha hai wo select karo. Tool tumhe ek <strong>analysis bias</strong> dikhayega — yeh ek "observation" hai, guaranteed entry signal <strong>nahi</strong>. Iska sabse bada faayda: yeh tumhe <strong>kab NA trade karna</strong> (avoid conditions) clearly batata hai.</p>
+    <div class="grid-2">
+      <div>
+        <label class="field"><span class="lbl">Price vs EMA 20 &amp; EMA 50</span>
+          <select id="pricePos">
+            <option value="above">Price dono EMAs ke UPAR</option>
+            <option value="below">Price dono EMAs ke NICHE</option>
+            <option value="between">Price EMAs ke BEECH / cross kar raha</option>
+          </select>
+        </label>
+        <label class="field"><span class="lbl">EMA 20 vs EMA 50</span>
+          <select id="emaStack">
+            <option value="20above">EMA 20, EMA 50 ke UPAR</option>
+            <option value="20below">EMA 20, EMA 50 ke NICHE</option>
+            <option value="tangled">Tangled / overlapping (flat)</option>
+          </select>
+        </label>
+        <label class="field"><span class="lbl">EMA slope (direction)</span>
+          <select id="emaSlope">
+            <option value="up">Dono clearly UP slope</option>
+            <option value="down">Dono clearly DOWN slope</option>
+            <option value="flat">Flat / sideways</option>
+          </select>
+        </label>
+        <label class="field"><span class="lbl">RSI (14) value — 0 se 100</span>
+          <input type="number" id="rsiVal" min="0" max="100" step="1" placeholder="e.g. 62" />
+        </label>
+      </div>
+      <div>
+        <label class="field"><span class="lbl">Volume</span>
+          <select id="vol">
+            <option value="normal">Normal / steady</option>
+            <option value="spike">Sudden spike</option>
+            <option value="low">Very low / thin</option>
+          </select>
+        </label>
+        <label class="field"><span class="lbl">High-impact news paas me? (agle 15–30 min)</span>
+          <select id="news">
+            <option value="no">Nahi</option>
+            <option value="yes">Haan — news window hai</option>
+          </select>
+        </label>
+        <label class="field"><span class="lbl">Session / liquidity</span>
+          <select id="session">
+            <option value="active">Active session (accha volume)</option>
+            <option value="lowliq">Low-liquidity / off-hours</option>
+          </select>
+        </label>
+        <label class="field"><span class="lbl">Structure confirmation</span>
+          <select id="structure">
+            <option value="pullback">Pullback ke baad trend-side bounce/reject</option>
+            <option value="none">Koi clear S/R confirmation nahi</option>
+            <option value="counter">Price key S/R ke against push kar raha</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn" id="analyzeBtn">Analyze karo</button>
+      <span class="muted-note">Yeh trade place nahi karta — sirf tumhari observation ko summarize karta hai.</span>
+    </div>
+    <div id="biasOut"></div>
+  </section>
+
+  <!-- JOURNAL -->
+  <section class="card">
+    <h2>4 · Demo Trade Journal — 20 trades log karo</h2>
+    <p class="sub">Har demo trade ke baad yahan entry karo. Data tumhare browser me (localStorage) save hota hai — koi server nahi. Isi se neeche tumhare asli numbers banenge.</p>
+    <div class="grid-2">
+      <div>
+        <label class="field"><span class="lbl">Asset / pair</span>
+          <input type="text" id="jAsset" placeholder="e.g. EUR/USD" />
+        </label>
+        <label class="field"><span class="lbl">Direction</span>
+          <select id="jDir"><option value="UP">UP (Buy/Call)</option><option value="DOWN">DOWN (Sell/Put)</option></select>
+        </label>
+        <label class="field"><span class="lbl">Stake (demo units)</span>
+          <input type="number" id="jStake" min="0" step="1" placeholder="e.g. 10" />
+        </label>
+      </div>
+      <div>
+        <label class="field"><span class="lbl">Result</span>
+          <select id="jResult"><option value="WIN">WIN</option><option value="LOSS">LOSS</option></select>
+        </label>
+        <label class="field"><span class="lbl">Setup / conditions (analysis se)</span>
+          <input type="text" id="jSetup" placeholder="e.g. above both EMAs, RSI 62, up slope" />
+        </label>
+        <label class="field"><span class="lbl">Notes (kya seekha?)</span>
+          <textarea id="jNotes" placeholder="e.g. news ke paas tha, avoid karna chahiye tha"></textarea>
+        </label>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="addTradeBtn">Trade add karo</button>
+      <button class="btn secondary small" id="exportBtn">Export JSON</button>
+      <button class="btn secondary small" id="importBtn">Import JSON</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" />
+      <button class="btn secondary small danger" id="clearBtn">Sab clear karo</button>
+    </div>
+    <div class="table-scroll" style="margin-top:16px">
+      <table id="tradeTable">
+        <thead>
+          <tr><th>#</th><th>Asset</th><th>Dir</th><th>Stake</th><th>Result</th><th>Setup</th><th>Notes</th><th></th></tr>
+        </thead>
+        <tbody id="tradeBody"></tbody>
+      </table>
+    </div>
+    <p class="muted-note" id="emptyNote" style="margin-top:10px">Abhi koi trade log nahi hua. Upar se pehla demo trade add karo.</p>
+  </section>
+
+  <!-- STATS -->
+  <section class="card">
+    <h2>5 · Tumhare Numbers — honest maths</h2>
+    <div class="row" style="margin-bottom:14px">
+      <label class="field" style="margin:0; max-width:260px">
+        <span class="lbl">QX payout % (win par kitna profit?)</span>
+        <input type="number" id="payout" min="1" max="100" step="1" value="85" />
+      </label>
+      <span class="muted-note" style="max-width:420px">Binary payout 100% se kam hota hai (aksar 70–90%). Isliye 50% win-rate se paisa nahi banta — break-even ke liye <strong>zyada</strong> win-rate chahiye. Neeche wo number dikh raha hai.</span>
+    </div>
+
+    <div class="stat-tiles">
+      <div class="tile"><div class="num" id="stTotal">0</div><div class="cap">Total / 20</div>
+        <div class="progress"><span id="stProgress"></span></div>
+      </div>
+      <div class="tile"><div class="num" id="stWinRate">–</div><div class="cap">Your win rate</div></div>
+      <div class="tile"><div class="num" id="stBreakeven">–</div><div class="cap">Break-even needs</div></div>
+      <div class="tile" id="stExpTile"><div class="num" id="stExp">–</div><div class="cap">Expectancy / trade</div></div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div class="tile" style="flex:1"><div class="num" id="stWins" style="color:var(--up)">0</div><div class="cap">Wins</div></div>
+      <div class="tile" style="flex:1"><div class="num" id="stLoss" style="color:var(--down)">0</div><div class="cap">Losses</div></div>
+      <div class="tile" style="flex:1"><div class="num" id="stPnl">0</div><div class="cap">Demo P/L (units)</div></div>
+    </div>
+
+    <div id="verdictBox"></div>
+  </section>
+
+  <!-- LEARN -->
+  <section class="card">
+    <h2>6 · Seekhne ke liye (yahi long-term me kaam aata hai)</h2>
+    <details><summary>Trend kaise identify karein?</summary>
+      <p>Uptrend: price higher-highs &amp; higher-lows bana raha ho, EMA 20 &gt; EMA 50, dono up-slope. Downtrend iska ulta. Agar EMAs aapas me chipke hain aur price dono ko baar-baar cross kar raha hai — wo trend nahi, range hai.</p>
+    </details>
+    <details><summary>False breakout kaise pehchaanein?</summary>
+      <p>Breakout candle ke turant baad agar price wapas level ke andar aa jaye (close back inside), aur volume follow-through na de — wo aksar fakeout hota hai. Ek confirmation candle ka wait karna helpful hota hai.</p>
+    </details>
+    <details><summary>Support/Resistance + EMA + RSI kaise combine karein?</summary>
+      <p>Sabse "clean" observations tab hote hain jab teeno align karein: price trend-side EMA par pullback kare, ek known S/R level se react kare, aur RSI trend direction confirm kare (uptrend me RSI 50 ke upar rehta hai). Ek indicator akela kaafi nahi.</p>
+    </details>
+    <details><summary>Backtesting &amp; journaling — sabse important skill</summary>
+      <p>Isi tool ka journal use karo. 20 nahi, 100+ trades ka data chahiye kisi bhi conclusion ke liye. Har trade ka setup + result likho, phir dekho kaunse setups me tumhara win-rate break-even se upar hai — aur kaunse me tum sirf luck par the.</p>
+    </details>
+    <details><summary>Kab bilkul trade NA karein</summary>
+      <ul>
+        <li>Sideways market (flat EMAs, price cross kar raha).</li>
+        <li>RSI 45–55 (weak momentum).</li>
+        <li>High-impact news ke aas-paas.</li>
+        <li>Low-liquidity / off-hours.</li>
+        <li>Jab "revenge" me ho ya bore ho ke trade kar rahe ho.</li>
+      </ul>
+    </details>
+  </section>
+
+  <footer>
+    Educational tool · No data leaves your browser · Not financial advice · Trade at your own risk.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "qx_demo_journal_v1";
+  var PAYOUT_KEY = "qx_payout_v1";
+  var THEME_KEY = "qx_theme_v1";
+
+  // ---------- Theme ----------
+  var themeBtn = document.getElementById("themeBtn");
+  themeBtn.addEventListener("click", function(){
+    var root = document.documentElement;
+    var cur = root.getAttribute("data-theme");
+    var next = cur === "dark" ? "light" : (cur === "light" ? "dark" : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark"));
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem(THEME_KEY, next); } catch(e){}
+  });
+
+  // ---------- Checklist / bias ----------
+  function analyze(){
+    var pricePos = val("pricePos");
+    var emaStack = val("emaStack");
+    var emaSlope = val("emaSlope");
+    var rsiRaw = document.getElementById("rsiVal").value;
+    var rsi = rsiRaw === "" ? null : Number(rsiRaw);
+    var vol = val("vol");
+    var news = val("news");
+    var session = val("session");
+    var structure = val("structure");
+
+    var reasons = [];
+    var cls = "neutral", title = "", body = "";
+
+    // ---- AVOID filters (override everything) ----
+    var avoid = [];
+    if (news === "yes") avoid.push("High-impact news window paas hai — price unpredictable move kar sakta hai.");
+    if (emaSlope === "flat" || emaStack === "tangled") avoid.push("EMAs flat/tangled hain — sideways market, koi clear trend nahi.");
+    if (rsi !== null && rsi >= 45 && rsi <= 55) avoid.push("RSI 45–55 ke beech hai — momentum weak/undecided.");
+    if (session === "lowliq") avoid.push("Low-liquidity session — movement inconsistent ho sakta hai.");
+    if (pricePos === "between") avoid.push("Price EMAs ke beech / cross kar raha hai — direction unclear.");
+
+    if (avoid.length){
+      cls = "avoid";
+      title = "🚫 Avoid / No-trade conditions";
+      body = "In conditions me trade karne se bachna behtar hota hai. Wait for a cleaner setup.";
+      reasons = avoid;
+      renderBias(cls, title, body, reasons);
+      return;
+    }
+
+    // ---- Buy bias ----
+    var buyScore = 0, buyR = [];
+    if (pricePos === "above"){ buyScore++; buyR.push("Price dono EMAs ke upar."); }
+    if (emaStack === "20above"){ buyScore++; buyR.push("EMA 20 &gt; EMA 50 (bullish structure)."); }
+    if (emaSlope === "up"){ buyScore++; buyR.push("EMAs up-slope kar rahe hain."); }
+    if (rsi !== null && rsi > 55){ buyScore++; buyR.push("RSI 55 ke upar — up-momentum."); }
+    if (structure === "pullback"){ buyR.push("Pullback ke baad trend-side bounce (confirmation)."); }
+
+    // ---- Sell bias ----
+    var sellScore = 0, sellR = [];
+    if (pricePos === "below"){ sellScore++; sellR.push("Price dono EMAs ke niche."); }
+    if (emaStack === "20below"){ sellScore++; sellR.push("EMA 20 &lt; EMA 50 (bearish structure)."); }
+    if (emaSlope === "down"){ sellScore++; sellR.push("EMAs down-slope kar rahe hain."); }
+    if (rsi !== null && rsi < 45){ sellScore++; sellR.push("RSI 45 ke niche — down-momentum."); }
+    if (structure === "pullback"){ sellR.push("Pullback ke baad trend-side reject (confirmation)."); }
+
+    if (structure === "counter"){
+      cls = "neutral"; title = "⚠️ Mixed — structure against";
+      body = "Price key S/R ke against push kar raha hai. Trend aligned ho bhi to, ek level ke against jaana risky observation hai.";
+      renderBias(cls, title, body, (buyScore>=sellScore?buyR:sellR));
+      return;
+    }
+
+    if (buyScore >= 3 && buyScore > sellScore){
+      cls = "buy"; title = "📈 Analysis bias: UPTREND structure";
+      body = "Conditions ek uptrend ke saath align karti hain. Yeh observe/study karne layak setup hai — <strong>guaranteed signal nahi</strong>. Entry, expiry aur risk khud decide karo, aur demo par test karo.";
+      reasons = buyR;
+    } else if (sellScore >= 3 && sellScore > buyScore){
+      cls = "sell"; title = "📉 Analysis bias: DOWNTREND structure";
+      body = "Conditions ek downtrend ke saath align karti hain. Yeh observe/study karne layak setup hai — <strong>guaranteed signal nahi</strong>. Entry, expiry aur risk khud decide karo, aur demo par test karo.";
+      reasons = sellR;
+    } else {
+      cls = "neutral"; title = "😐 No clear bias — better to skip";
+      body = "Conditions kisi ek taraf strongly align nahi kar rahi. Mixed setups me edge kam hota hai — patience rakho.";
+      reasons = buyScore>=sellScore ? buyR : sellR;
+      if(!reasons.length) reasons = ["Koi strong trend/momentum confirmation nahi mila."];
+    }
+    renderBias(cls, title, body, reasons);
+  }
+
+  function renderBias(cls, title, body, reasons){
+    var html = '<div class="bias-out '+cls+'">'
+      + '<div class="bias-title">'+title+'</div>'
+      + '<div>'+body+'</div>';
+    if (reasons && reasons.length){
+      html += '<ul class="bias-reasons">';
+      reasons.forEach(function(r){ html += '<li>'+r+'</li>'; });
+      html += '</ul>';
+    }
+    html += '<div class="disclaimer-inline">Yeh ek analysis observation hai, financial advice ya guaranteed entry signal nahi. 2-min binary options high-risk hai — hamesha pehle demo par test karo.</div>';
+    html += '</div>';
+    document.getElementById("biasOut").innerHTML = html;
+  }
+  function val(id){ return document.getElementById(id).value; }
+  document.getElementById("analyzeBtn").addEventListener("click", analyze);
+
+  // ---------- Journal ----------
+  function load(){
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch(e){ return []; }
+  }
+  function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
+
+  function addTrade(){
+    var asset = document.getElementById("jAsset").value.trim() || "—";
+    var dir = val("jDir");
+    var stake = Number(document.getElementById("jStake").value) || 0;
+    var result = val("jResult");
+    var setup = document.getElementById("jSetup").value.trim();
+    var notes = document.getElementById("jNotes").value.trim();
+    var list = load();
+    list.push({ asset:asset, dir:dir, stake:stake, result:result, setup:setup, notes:notes });
+    save(list);
+    // clear light fields
+    document.getElementById("jSetup").value = "";
+    document.getElementById("jNotes").value = "";
+    render();
+  }
+
+  function delTrade(i){
+    var list = load();
+    list.splice(i,1);
+    save(list);
+    render();
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  function render(){
+    var list = load();
+    var body = document.getElementById("tradeBody");
+    body.innerHTML = "";
+    list.forEach(function(t, i){
+      var tr = document.createElement("tr");
+      var dirPill = '<span class="pill '+(t.dir==="UP"?"up":"down")+'">'+esc(String(t.dir))+'</span>';
+      tr.innerHTML = '<td>'+(i+1)+'</td>'
+        + '<td>'+esc(t.asset)+'</td>'
+        + '<td>'+dirPill+'</td>'
+        + '<td>'+esc(String(t.stake))+'</td>'
+        + '<td class="'+(t.result==="WIN"?"win":"loss")+'">'+esc(String(t.result))+'</td>'
+        + '<td>'+esc(t.setup||"—")+'</td>'
+        + '<td>'+esc(t.notes||"—")+'</td>'
+        + '<td><button class="del-x" data-i="'+i+'" title="Delete">✕</button></td>';
+      body.appendChild(tr);
+    });
+    body.querySelectorAll(".del-x").forEach(function(b){
+      b.addEventListener("click", function(){ delTrade(Number(b.getAttribute("data-i"))); });
+    });
+    document.getElementById("emptyNote").style.display = list.length ? "none" : "block";
+    computeStats(list);
+  }
+
+  function computeStats(list){
+    var total = list.length;
+    var wins = list.filter(function(t){ return t.result==="WIN"; }).length;
+    var losses = total - wins;
+    var payout = Number(document.getElementById("payout").value) || 85;
+    var p = payout/100;
+
+    document.getElementById("stTotal").textContent = total;
+    document.getElementById("stWins").textContent = wins;
+    document.getElementById("stLoss").textContent = losses;
+    document.getElementById("stProgress").style.width = Math.min(100, (total/20)*100) + "%";
+
+    var breakeven = 1/(1+p); // required win fraction to break even
+    document.getElementById("stBreakeven").textContent = (breakeven*100).toFixed(1) + "%";
+
+    if (total === 0){
+      document.getElementById("stWinRate").textContent = "–";
+      document.getElementById("stExp").textContent = "–";
+      document.getElementById("stExpTile").classList.remove("good","bad");
+      document.getElementById("stPnl").textContent = "0";
+      document.getElementById("verdictBox").innerHTML = "";
+      return;
+    }
+
+    var wr = wins/total;
+    var wrTile = document.getElementById("stWinRate");
+    wrTile.textContent = (wr*100).toFixed(1) + "%";
+
+    // Expectancy per 1 unit staked
+    var exp = wr*p - (1-wr);
+    var expEl = document.getElementById("stExp");
+    expEl.textContent = (exp>=0?"+":"") + (exp*100).toFixed(1) + "%";
+    var expTile = document.getElementById("stExpTile");
+    expTile.classList.remove("good","bad");
+    expTile.classList.add(exp>0 ? "good" : "bad");
+
+    // Actual demo P/L in units
+    var pnl = 0;
+    list.forEach(function(t){
+      pnl += (t.result==="WIN") ? (t.stake*p) : (-t.stake);
+    });
+    document.getElementById("stPnl").textContent = (pnl>=0?"+":"") + pnl.toFixed(1);
+
+    renderVerdict(total, wr, breakeven, exp);
+  }
+
+  function renderVerdict(total, wr, breakeven, exp){
+    var box = document.getElementById("verdictBox");
+    var html = "";
+    if (total < 20){
+      html = '<div class="verdict"><h3>📋 '+total+'/20 trades done</h3>'
+        + '<p>Abhi sample chhota hai. 20 tak pahuncho, phir bhi yaad rakhna 20 bhi statistically kaafi nahi hota — variance bahut hota hai. Consistency dekhne ke liye 100+ trades chahiye.</p></div>';
+    } else {
+      var beatsBE = wr > breakeven;
+      var cls = beatsBE ? "pass" : "fail";
+      html = '<div class="verdict '+cls+'"><h3>'+(beatsBE ? "🟡" : "🔴")+' 20 demo trades complete — reality check</h3>';
+      html += '<p>Tumhara demo win-rate <strong>'+(wr*100).toFixed(1)+'%</strong> hai. Is payout par break-even ke liye <strong>'+(breakeven*100).toFixed(1)+'%</strong> chahiye.</p>';
+      if (beatsBE){
+        html += '<p>Tum break-even se upar ho — <strong>par ruko</strong>. Yeh result real paisa lagane ka signal <strong>bilkul nahi</strong> hai. 20 trades statistically kaafi nahi — itna accha result sirf variance/luck bhi ho sakta hai. Sahi tarika: aur 80–100+ demo trades log karo aur dekho win-rate tikta hai ya nahi. Real trading high-risk hai aur demo ka result real profit guarantee nahi karta — woh faisla poori tarah tumhara hai.</p>';
+      } else {
+        html += '<p>Tum break-even se <strong>neeche</strong> ho — matlab is setup par abhi tak edge nahi hai. Yeh strong signal hai ki real paisa <strong>nahi</strong> lagana chahiye. Pehle strategy refine karo aur dobara demo par test karo.</p>';
+      }
+      html += '<p class="disclaimer-inline">Main tumhare liye "real account me jao / mat jao" ka final faisla nahi le sakta — wo tumhara hai. Par honest maths yahi keh rahi hai: demo ka accha result real profit ki guarantee nahi.</p>';
+      html += '</div>';
+    }
+    box.innerHTML = html;
+  }
+
+  // ---------- Export / Import / Clear ----------
+  document.getElementById("addTradeBtn").addEventListener("click", addTrade);
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    if (confirm("Saare logged trades delete kar dein? Yeh wapas nahi aayenge.")){
+      save([]); render();
+    }
+  });
+  document.getElementById("exportBtn").addEventListener("click", function(){
+    var data = JSON.stringify(load(), null, 2);
+    var blob = new Blob([data], {type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "qx-demo-journal.json"; a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById("importBtn").addEventListener("click", function(){
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var arr = JSON.parse(r.result);
+        if (!Array.isArray(arr)){ alert("Invalid file format."); return; }
+        var clean = [], bad = 0;
+        arr.forEach(function(t){
+          if (!t || typeof t !== "object" || Array.isArray(t)){ bad++; return; }
+          var result = String(t.result || "").toUpperCase();
+          if (result !== "WIN" && result !== "LOSS"){ bad++; return; }
+          var dir = String(t.dir || "").toUpperCase();
+          if (dir !== "UP" && dir !== "DOWN") dir = "UP";
+          clean.push({
+            asset: String(t.asset || "—").slice(0, 40),
+            dir: dir,
+            stake: Number(t.stake) || 0,
+            result: result,
+            setup: String(t.setup || "").slice(0, 200),
+            notes: String(t.notes || "").slice(0, 500)
+          });
+        });
+        if (!clean.length){ alert("Is file me koi valid trade nahi mila."); return; }
+        save(clean); render();
+        if (bad) alert(bad + " invalid entry skip ki gayi. " + clean.length + " valid trades import hue.");
+      } catch(err){ alert("File padh nahi paaya: " + err.message); }
+    };
+    r.readAsText(f);
+  });
+  document.getElementById("payout").addEventListener("input", function(){
+    localStorage.setItem(PAYOUT_KEY, document.getElementById("payout").value);
+    render();
+  });
+
+  // ---------- Init ----------
+  var savedPayout = localStorage.getItem(PAYOUT_KEY);
+  if (savedPayout) document.getElementById("payout").value = savedPayout;
+  render();
+})();
+</script>
+</body>
+</html>

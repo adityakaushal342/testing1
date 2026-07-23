@@ -1,0 +1,347 @@
+// Investment OS — Database schema (Phase 2)
+// Covers: Companies, Stocks, Quarter/Annual Results, News, Sector, Market,
+// ETF, Mutual Fund, Bond, Portfolio, Watchlist, AI Score, Risk Score.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Core equities
+// ---------------------------------------------------------------------------
+
+model Sector {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  companies Company[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Company {
+  id           Int      @id @default(autoincrement())
+  symbol       String   @unique            // e.g. RELIANCE
+  name         String                       // e.g. Reliance Industries Ltd
+  isin         String?  @unique
+  exchange     String   @default("NSE")     // NSE / BSE
+  sectorId     Int?
+  sector       Sector?  @relation(fields: [sectorId], references: [id])
+  industry     String?
+  marketCap    Float?                        // in crore
+  description  String?
+
+  stock          Stock?
+  quarterResults QuarterResult[]
+  annualResults  AnnualResult[]
+  shareholdings  Shareholding[]
+  dividends      Dividend[]
+  news           News[]
+  aiScore        AIScore?
+  knowledge      Knowledge?
+  watchlistItems WatchlistItem[]
+  holdings       Holding[]
+  alerts         Alert[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectorId])
+}
+
+// Latest quote + valuation ratios (Phase 5)
+model Stock {
+  id         Int      @id @default(autoincrement())
+  companyId  Int      @unique
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  price      Float
+  change     Float    @default(0)   // absolute change vs previous close
+  changePct  Float    @default(0)
+  dayHigh    Float?
+  dayLow     Float?
+  yearHigh   Float?
+  yearLow    Float?
+  volume     BigInt?
+
+  pe         Float?
+  pb         Float?
+  roe        Float?
+  roce       Float?
+  dividendYield Float?
+
+  priceHistory PricePoint[]
+  updatedAt  DateTime @updatedAt
+}
+
+model PricePoint {
+  id      Int      @id @default(autoincrement())
+  stockId Int
+  stock   Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  date    DateTime
+  open    Float
+  high    Float
+  low     Float
+  close   Float
+  volume  BigInt?
+
+  @@unique([stockId, date])
+  @@index([stockId, date])
+}
+
+// ---------------------------------------------------------------------------
+// Fundamentals
+// ---------------------------------------------------------------------------
+
+model QuarterResult {
+  id         Int      @id @default(autoincrement())
+  companyId  Int
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fiscalYear Int                    // 2025
+  quarter    Int                    // 1..4
+  revenue    Float?
+  netProfit  Float?
+  ebitda     Float?
+  eps        Float?
+  reportedAt DateTime?
+
+  @@unique([companyId, fiscalYear, quarter])
+  @@index([companyId])
+}
+
+model AnnualResult {
+  id         Int      @id @default(autoincrement())
+  companyId  Int
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fiscalYear Int
+  revenue    Float?
+  netProfit  Float?
+  ebitda     Float?
+  eps        Float?
+  totalDebt  Float?
+  totalEquity Float?
+
+  @@unique([companyId, fiscalYear])
+  @@index([companyId])
+}
+
+model Shareholding {
+  id          Int      @id @default(autoincrement())
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  asOf        DateTime
+  promoter    Float?   // percentages
+  fii         Float?
+  dii         Float?
+  public      Float?
+
+  @@unique([companyId, asOf])
+  @@index([companyId])
+}
+
+model Dividend {
+  id         Int      @id @default(autoincrement())
+  companyId  Int
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  exDate     DateTime
+  amount     Float
+  type       String   @default("final") // interim / final / special
+
+  @@index([companyId])
+}
+
+// ---------------------------------------------------------------------------
+// News (Phase 3 / 4 / 9)
+// ---------------------------------------------------------------------------
+
+model News {
+  id         Int      @id @default(autoincrement())
+  title      String
+  summary    String?
+  url        String?
+  source     String?
+  sentiment  Float?   // -1 .. 1
+  publishedAt DateTime
+  companyId  Int?
+  company    Company? @relation(fields: [companyId], references: [id])
+
+  createdAt  DateTime @default(now())
+
+  @@index([companyId])
+  @@index([publishedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Market / macro (Phase 3 / 4)
+// ---------------------------------------------------------------------------
+
+// Index & macro snapshots: NIFTY, SENSEX, FII_DII, GDP, INFLATION, RBI_RATE,
+// USDINR, GOLD, SILVER, OIL, VIX
+model MarketData {
+  id        Int      @id @default(autoincrement())
+  key       String                 // e.g. "NIFTY"
+  label     String                 // "Nifty 50"
+  value     Float
+  change    Float?   @default(0)
+  changePct Float?   @default(0)
+  unit      String?                // "pts", "%", "INR"
+  asOf      DateTime
+
+  @@unique([key, asOf])
+  @@index([key])
+}
+
+model SectorPerformance {
+  id        Int      @id @default(autoincrement())
+  sector    String
+  changePct Float
+  asOf      DateTime
+
+  @@unique([sector, asOf])
+}
+
+// ---------------------------------------------------------------------------
+// Other instruments
+// ---------------------------------------------------------------------------
+
+model ETF {
+  id        Int     @id @default(autoincrement())
+  symbol    String  @unique
+  name      String
+  category  String?              // Gold ETF, Silver ETF, Index ETF
+  nav       Float?
+  aum       Float?
+  expenseRatio Float?
+  updatedAt DateTime @updatedAt
+}
+
+model MutualFund {
+  id        Int     @id @default(autoincrement())
+  code      String  @unique
+  name      String
+  category  String?              // Equity, Debt, Hybrid
+  nav       Float?
+  aum       Float?
+  expenseRatio Float?
+  returns1Y Float?
+  returns3Y Float?
+  returns5Y Float?
+  updatedAt DateTime @updatedAt
+}
+
+model Bond {
+  id        Int     @id @default(autoincrement())
+  isin      String  @unique
+  name      String
+  issuer    String?
+  couponRate Float?
+  maturity  DateTime?
+  yieldToMaturity Float?
+  rating    String?
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Portfolio & watchlist (Phase 6 / 10)
+// ---------------------------------------------------------------------------
+
+model Portfolio {
+  id        Int       @id @default(autoincrement())
+  name      String    @default("My Portfolio")
+  holdings  Holding[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Holding {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id])
+  quantity    Float
+  avgCost     Float                 // per share
+  buyDate     DateTime  @default(now())
+
+  @@index([portfolioId])
+  @@index([companyId])
+}
+
+model Watchlist {
+  id        Int             @id @default(autoincrement())
+  name      String          @default("My Watchlist")
+  items     WatchlistItem[]
+  createdAt DateTime        @default(now())
+}
+
+model WatchlistItem {
+  id          Int       @id @default(autoincrement())
+  watchlistId Int
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id])
+  addedAt     DateTime  @default(now())
+
+  @@unique([watchlistId, companyId])
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge engine (Phase 7 ⭐) + AI (Phase 8)
+// ---------------------------------------------------------------------------
+
+// Stores the per-company growth/negative factor JSON. `data` mirrors the files
+// in src/knowledge/*.json so the AI layer can read structured drivers.
+model Knowledge {
+  id             Int      @id @default(autoincrement())
+  companyId      Int      @unique
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  growthFactors  Json                  // string[]
+  negativeFactors Json                 // string[]
+  moat           String?
+  data           Json?                 // full raw knowledge document
+  updatedAt      DateTime @updatedAt
+}
+
+model AIScore {
+  id          Int      @id @default(autoincrement())
+  companyId   Int      @unique
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  growthScore Float                    // 0..100
+  riskScore   Float                    // 0..100 (higher = riskier)
+  confidence  Float                    // 0..1
+  summary     String?
+  reasons     Json?                    // string[]
+  generatedAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Alerts (Phase 9)
+// ---------------------------------------------------------------------------
+
+enum AlertType {
+  QUARTER_RESULT
+  DIVIDEND
+  FII_BUYING
+  PROMOTER_SOLD
+  NEWS
+  PRICE_MOVE
+}
+
+model Alert {
+  id        Int       @id @default(autoincrement())
+  type      AlertType
+  companyId Int?
+  company   Company?  @relation(fields: [companyId], references: [id])
+  message   String
+  meta      Json?
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@index([companyId])
+  @@index([createdAt])
+}
