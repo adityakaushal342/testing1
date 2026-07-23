@@ -96,6 +96,7 @@
 
   <section class="card">
     <h2>Companies (live price)</h2>
+    <div class="mini muted" style="margin-bottom:10px">All 16 are real NSE-listed stocks. On Groww, search the <b>company name</b> (or the NSE symbol) to verify — e.g. "Larsen &amp; Toubro" for LT, "State Bank of India" for SBIN, "Bharti Airtel" for BHARTIARTL.</div>
     <div id="companies"></div>
   </section>
 
@@ -151,7 +152,7 @@ const MACRO_DEFS = [
 const STOCKS = [
   { sym:"RELIANCE", y:"RELIANCE.NS", name:"Reliance Industries Ltd", pe:24.5, g:68, r:52, demo:2945.6, reason:"Jio 5G monetisation + retail expansion + new-energy pipeline", prom:50.3, fii:22.1, dii:15.4 },
   { sym:"TCS", y:"TCS.NS", name:"Tata Consultancy Services Ltd", pe:29.8, g:71, r:44, demo:4120, reason:"Large deal wins, AI & cloud transformation demand", prom:71.8, fii:12.3, dii:9.1 },
-  { sym:"INFOSYS", y:"INFY.NS", name:"Infosys Ltd", pe:26.1, g:70, r:45, demo:1685.3, reason:"Generative-AI deal pipeline, US IT spending recovery", prom:14.7, fii:33.2, dii:36.1 },
+  { sym:"INFY", y:"INFY.NS", name:"Infosys Ltd", pe:26.1, g:70, r:45, demo:1685.3, reason:"Generative-AI deal pipeline, US IT spending recovery", prom:14.7, fii:33.2, dii:36.1 },
   { sym:"HDFCBANK", y:"HDFCBANK.NS", name:"HDFC Bank Ltd", pe:18.9, g:62, r:38, demo:1642, reason:"Credit growth + merger synergies, top franchise", prom:0, fii:47.3, dii:33.0 },
   { sym:"ICICIBANK", y:"ICICIBANK.NS", name:"ICICI Bank Ltd", pe:18.0, g:66, r:40, demo:1180, reason:"Strong retail loan growth, clean asset quality", prom:0, fii:44.0, dii:43.0 },
   { sym:"SBIN", y:"SBIN.NS", name:"State Bank of India", pe:9.5, g:64, r:48, demo:825, reason:"PSU re-rating, healthy credit growth, low valuation", prom:56.9, fii:10.5, dii:24.0 },
@@ -162,7 +163,7 @@ const STOCKS = [
   { sym:"BAJFINANCE", y:"BAJFINANCE.NS", name:"Bajaj Finance Ltd", pe:30, g:72, r:55, demo:7200, reason:"Fast AUM growth, digital lending scale-up", prom:54.7, fii:20.1, dii:13.0 },
   { sym:"MARUTI", y:"MARUTI.NS", name:"Maruti Suzuki India Ltd", pe:27, g:63, r:42, demo:12500, reason:"SUV mix improvement + export growth", prom:58.2, fii:18.0, dii:18.5 },
   { sym:"TATAMOTORS", y:"TATAMOTORS.NS", name:"Tata Motors Ltd", pe:12, g:65, r:58, demo:980, reason:"JLR margin recovery + India EV leadership", prom:46.4, fii:18.2, dii:16.0 },
-  { sym:"SUNPHARMA", y:"SUNPHARMA.NS", name:"Sun Pharmaceutical Ind Ltd", pe:36, g:62, r:40, demo:1650, reason:"Specialty pharma ramp + strong US pipeline", prom:54.5, fii:16.3, dii:18.0 },
+  { sym:"SUNPHARMA", y:"SUNPHARMA.NS", name:"Sun Pharmaceutical Industries Ltd", pe:36, g:62, r:40, demo:1650, reason:"Specialty pharma ramp + strong US pipeline", prom:54.5, fii:16.3, dii:18.0 },
   { sym:"TITAN", y:"TITAN.NS", name:"Titan Company Ltd", pe:88, g:66, r:47, demo:3400, reason:"Jewellery market-share gains, retail expansion", prom:52.9, fii:17.8, dii:12.0 },
   { sym:"KOTAKBANK", y:"KOTAKBANK.NS", name:"Kotak Mahindra Bank Ltd", pe:19, g:60, r:39, demo:1750, reason:"Digital banking growth, strong capital base", prom:25.9, fii:36.0, dii:18.0 },
 ];
@@ -419,19 +420,19 @@ function render(d) {
       : '<div class="muted mini">You haven\'t invested yet — <b>₹0</b> in the market. When you buy stocks, add them here to track live profit/loss.</div>');
 
   const items = (d.watchlist || {}).items || [];
-  el("watchlist").innerHTML = '<table><thead><tr><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+  el("watchlist").innerHTML = '<table><thead><tr><th>Company</th><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th></tr></thead><tbody>' +
     items.map(it => { const st = it.company.stock, ai = it.company.aiScore;
-      return '<tr><td>' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
-        (st ? pct(st.changePct) : "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+      return '<tr><td><b>' + esc(it.company.name) + '</b></td><td class="muted">' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
+        (st ? pct(st.changePct) : "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td></tr>';
     }).join("") + '</tbody></table>';
 
   el("alerts").innerHTML = (d.alerts || []).slice(0, 10).map(a =>
     '<div class="alert"><span class="pill">' + a.type + '</span><span>' + esc(a.message) +
     '<div class="mini muted">' + new Date(a.createdAt).toLocaleString() + '</div></span></div>').join("");
 
-  el("companies").innerHTML = '<table><thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+  el("companies").innerHTML = '<table><thead><tr><th>Company name</th><th>NSE symbol</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
     (d.companies || []).map(c => { const st = c.stock, ai = c.aiScore;
-      return '<tr><td>' + c.symbol + '</td><td class="muted">' + esc(c.name) + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
+      return '<tr><td><b>' + esc(c.name) + '</b></td><td class="muted">' + c.symbol + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
         (st ? pct(st.changePct) : "—") + '</td><td>' + (st?.pe ?? "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
     }).join("") + '</tbody></table>';
 }
@@ -445,7 +446,7 @@ function renderSuggestions(list) {
     if (s.dii) inv.push("DII " + s.dii + "%");
     return '<div class="card" style="background:var(--panel2)">' +
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">' +
-        '<div><b>' + s.symbol + '</b> <div class="mini muted">' + esc(s.name) + '</div></div>' +
+        '<div><b>' + esc(s.name) + '</b> <div class="mini muted">NSE: ' + s.symbol + '</div></div>' +
         '<span class="pill" style="background:#052e16;color:#bbf7d0">Growth ' + s.growthScore + '</span>' +
       '</div>' +
       '<div style="margin-top:8px">' + inr(s.price) + ' <span class="' + cls(s.changePct || 0) + '">' + (s.price != null ? pct(s.changePct || 0) : "") + '</span>' +
@@ -458,8 +459,8 @@ function renderSuggestions(list) {
 
 function movers(list) {
   if (!list || !list.length) return '<div class="muted mini">No data</div>';
-  return list.map(r => '<div class="row"><span title="' + esc(r.name || "") + '">' + r.symbol + '</span>' +
-    '<span><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>').join("");
+  return list.map(r => '<div class="row"><span>' + esc(r.name || r.symbol) + '<div class="mini muted">' + r.symbol + '</div></span>' +
+    '<span style="text-align:right"><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>').join("");
 }
 function tile(label, val, sub, tone) {
   return '<div class="tile card"><div class="label">' + label + '</div><div class="val ' + (tone || "") + '">' + val + '</div>' +
