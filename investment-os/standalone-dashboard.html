@@ -183,9 +183,15 @@ const round = (n) => Number(Number(n).toFixed(2));
 const el = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
 
-// --- CORS proxies (tried in order) so the browser can reach Yahoo/Google -----
+// --- Reaching Yahoo/Google from the browser ---------------------------------
+// If served by live-server.js (http/https), use its same-origin /proxy — 100%
+// reliable, no CORS. If opened as a plain file, fall back to public CORS proxies
+// (these can be blocked/rate-limited; live-server is the reliable path).
+const SAME_ORIGIN = location.protocol === "http:" || location.protocol === "https:";
 const PROXIES = [
+  ...(SAME_ORIGIN ? [(u) => "/proxy?url=" + encodeURIComponent(u)] : []),
   (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  (u) => "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u),
   (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
 ];
 async function proxied(url) {
@@ -366,7 +372,8 @@ function setStatus(mode) {
     dot.className = "dot demo";
     st.textContent = "Demo · " + t + " · auto-refresh hourly";
     b.className = "banner demo";
-    b.innerHTML = "⚠️ Couldn't reach the live source (network/proxy blocked). Showing <b>demo data</b>. Click <b>Refresh now</b> to retry, or check your internet.";
+    b.innerHTML = "⚠️ Couldn't reach live data through a public proxy (often blocked/rate-limited). Showing <b>demo data</b>.<br>" +
+      "✅ For reliable live data with no setup: put <code>live-server.js</code> next to this file and run <code>node live-server.js</code>, then open the URL it prints. Or click <b>Refresh now</b> to retry the public proxy.";
   } else {
     dot.className = "dot live";
     st.textContent = (mode === "backend" ? "Live (backend)" : "Live (Yahoo)") + " · " + t + " · auto-refresh hourly";
