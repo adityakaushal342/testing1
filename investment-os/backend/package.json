@@ -4,6 +4,9 @@
   "description": "Investment OS backend — Express API + Prisma (Phases 2-12)",
   "type": "module",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",

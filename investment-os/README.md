@@ -102,16 +102,28 @@ npm run scheduler   # full routine weekdays 08:30 IST + hourly data refresh at :
 The page polls hourly on the client; the scheduler updates the database hourly on
 the server — together they keep the dashboard current without any manual step.
 
-## Data collectors (Phase 3)
+## Data collectors (Phase 3) — free live data, no API key
 
-`backend/src/api/*` wrap the external sources. Each collector returns **mock data
-by default** and only calls the real provider when the matching API key is present
-in `.env`. This keeps the app fully runnable offline. Sources covered:
+`backend/src/api/*` pull **live data from free, keyless sources** by default, and
+fall back to mock data automatically if a source is unreachable (so the app never
+breaks offline):
 
-- Stock price, quarter results, financials, shareholding, company news
-- Index data: Nifty, Sensex, FII/DII, VIX
-- Macro: GDP, inflation, RBI rate, USD/INR
-- Commodities: Gold, Silver, Oil
+| Data | Source | Key needed |
+| ---- | ------ | ---------- |
+| Stock price + 3-month history | Yahoo Finance chart API (`RELIANCE.NS`, …) | ❌ none |
+| Indices: Nifty, Sensex, Bank Nifty, India VIX | Yahoo Finance (`^NSEI`, `^BSESN`, …) | ❌ none |
+| FX & commodities: USD/INR, Gold, Silver, Brent | Yahoo Finance (`INR=X`, `GC=F`, …) | ❌ none |
+| Company & market news (with headline sentiment) | Google News RSS | ❌ none |
+| Quarter results, shareholding | mock (no free keyless feed) | — |
+| Macro: GDP, inflation, RBI rate, FII/DII | static constants | — |
+
+Just run the backend and it starts fetching real prices — **no signup, no keys**.
+The optional `*_API_KEY` slots in `.env` are only for upgrading to a paid provider
+later.
+
+> Note: Yahoo/Google endpoints are unofficial and rate-limited; the hourly
+> scheduler cadence stays well within limits. If a call fails, that item quietly
+> falls back to mock and retries next cycle.
 
 ## Disclaimer
 

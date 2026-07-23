@@ -1,9 +1,14 @@
 // Stock / company fundamentals collector (Phase 3)
-// Covers: stock price, quarter results, financials, shareholding.
-// Returns mock data unless STOCK_API_KEY is configured.
+// Live source: Yahoo Finance chart API (free, no key) for price + history.
+// Quarter results & shareholding have no reliable free keyless feed, so they
+// stay mock. PE/PB/ROE (not in the chart endpoint) use the SEED fallback.
+import { yahooChart, quoteFromMeta } from "../utils/http.js";
 
-const hasKey = () => Boolean(process.env.STOCK_API_KEY);
+// Our symbol -> NSE/Yahoo ticker (most are identical; a few differ).
+const YAHOO_MAP = { INFOSYS: "INFY" };
+const nse = (symbol) => `${YAHOO_MAP[symbol] || symbol}.NS`;
 
+// Ratio fallbacks + mock prices (used when Yahoo is unreachable).
 const SEED = {
   RELIANCE: { price: 2945.6, change: 18.2, changePct: 0.62, pe: 24.5, pb: 2.1, roe: 9.2, roce: 10.1, dividendYield: 0.4 },
   TCS:      { price: 4120.0, change: -22.5, changePct: -0.54, pe: 29.8, pb: 13.5, roe: 46.0, roce: 58.0, dividendYield: 1.3 },
@@ -13,57 +18,86 @@ const SEED = {
 };
 
 export async function fetchQuote(symbol) {
-  if (hasKey()) {
-    // TODO: real provider call keyed by process.env.STOCK_API_KEY
+  const ratios = SEED[symbol] || { pe: null, pb: null, roe: null, roce: null, dividendYield: null };
+  try {
+    const r = await yahooChart(nse(symbol), "5d", "1d");
+    const q = quoteFromMeta(r.meta);
+    return {
+      symbol,
+      price: Number(q.price),
+      change: q.change,
+      changePct: q.changePct,
+      dayHigh: q.dayHigh,
+      dayLow: q.dayLow,
+      yearHigh: q.yearHigh,
+      yearLow: q.yearLow,
+      volume: q.volume ? Math.round(q.volume) : null,
+      // Valuation ratios aren't in the chart feed → keep known/fallback values.
+      pe: ratios.pe, pb: ratios.pb, roe: ratios.roe, roce: ratios.roce, dividendYield: ratios.dividendYield,
+    };
+  } catch {
+    const base = SEED[symbol] || { price: 100, change: 0, changePct: 0, pe: 20, pb: 3, roe: 15, roce: 18, dividendYield: 1 };
+    return {
+      symbol, ...base,
+      dayHigh: base.price * 1.01, dayLow: base.price * 0.99,
+      yearHigh: base.price * 1.35, yearLow: base.price * 0.7, volume: 1_500_000,
+    };
   }
-  const base = SEED[symbol] || { price: 100, change: 0, changePct: 0, pe: 20, pb: 3, roe: 15, roce: 18, dividendYield: 1 };
-  return {
-    symbol,
-    ...base,
-    dayHigh: base.price * 1.01,
-    dayLow: base.price * 0.99,
-    yearHigh: base.price * 1.35,
-    yearLow: base.price * 0.7,
-    volume: 1_500_000,
-  };
 }
 
-// Simple synthetic OHLC series (last `days` sessions) for charts (Phase 5).
 export async function fetchPriceHistory(symbol, days = 60) {
-  const base = (SEED[symbol]?.price) || 100;
+  const range = days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 180 ? "6mo" : "1y";
+  try {
+    const r = await yahooChart(nse(symbol), range, "1d");
+    const ts = r.timestamp || [];
+    const q = r.indicators?.quote?.[0] || {};
+    const out = [];
+    for (let i = 0; i < ts.length; i++) {
+      if (q.close?.[i] == null) continue;
+      out.push({
+        date: new Date(ts[i] * 1000),
+        open: round(q.open?.[i] ?? q.close[i]),
+        high: round(q.high?.[i] ?? q.close[i]),
+        low: round(q.low?.[i] ?? q.close[i]),
+        close: round(q.close[i]),
+        volume: q.volume?.[i] ? Math.round(q.volume[i]) : null,
+      });
+    }
+    if (out.length) return out.slice(-days);
+    throw new Error("empty history");
+  } catch {
+    return syntheticHistory(symbol, days);
+  }
+}
+
+const round = (n) => Number(Number(n).toFixed(2));
+
+// Deterministic synthetic OHLC fallback (no RNG so it is reproducible).
+function syntheticHistory(symbol, days) {
+  const base = SEED[symbol]?.price || 100;
   const out = [];
-  let price = base * 0.85;
   const start = new Date();
   start.setDate(start.getDate() - days);
   for (let i = 0; i < days; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    // gentle deterministic drift + wave (no RNG so it is reproducible)
     const wave = Math.sin(i / 6) * base * 0.02;
-    const drift = (base * 0.15) * (i / days);
-    const close = Number((base * 0.85 + drift + wave).toFixed(2));
-    const open = Number((close - wave / 2).toFixed(2));
-    out.push({
-      date: d,
-      open,
-      high: Number(Math.max(open, close) * 1.006).toFixed(2) * 1,
-      low: Number(Math.min(open, close) * 0.994).toFixed(2) * 1,
-      close,
-      volume: 1_000_000 + i * 5000,
-    });
-    price = close;
+    const drift = base * 0.15 * (i / days);
+    const close = round(base * 0.85 + drift + wave);
+    const open = round(close - wave / 2);
+    out.push({ date: d, open, high: round(Math.max(open, close) * 1.006), low: round(Math.min(open, close) * 0.994), close, volume: 1_000_000 + i * 5000 });
   }
   return out;
 }
 
+// --- No free keyless feed below: kept as mock ------------------------------
+
 export async function fetchQuarterResults(symbol) {
-  // Latest 4 quarters, mock
   const now = new Date();
   const fy = now.getFullYear();
   const scale = (SEED[symbol]?.price || 100) * 100;
   return [1, 2, 3, 4].map((q) => ({
-    fiscalYear: fy,
-    quarter: q,
+    fiscalYear: fy, quarter: q,
     revenue: Math.round(scale * (1 + q * 0.03)),
     netProfit: Math.round(scale * 0.14 * (1 + q * 0.04)),
     ebitda: Math.round(scale * 0.22 * (1 + q * 0.03)),
