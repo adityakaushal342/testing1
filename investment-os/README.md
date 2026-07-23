@@ -83,6 +83,25 @@ npm run dev                     # http://localhost:5173
 
 The frontend proxies `/api` to the backend, so both must be running.
 
+## Live auto-refreshing dashboard 🖥️
+
+Besides the React app, the backend serves a **standalone single-file dashboard**
+at **http://localhost:4000** (`backend/public/index.html`). Open it in any
+browser — no build step. It pulls market overview, top gainers/losers, market
+health, portfolio, watchlist, alerts, AI scores, news and macro/commodities into
+one page and **auto-refreshes every hour** (with a manual "Refresh now" button
+and a live "last updated" status).
+
+To keep the underlying data fresh on the same cadence, run the scheduler:
+
+```bash
+cd backend
+npm run scheduler   # full routine weekdays 08:30 IST + hourly data refresh at :00
+```
+
+The page polls hourly on the client; the scheduler updates the database hourly on
+the server — together they keep the dashboard current without any manual step.
+
 ## Data collectors (Phase 3)
 
 `backend/src/api/*` wrap the external sources. Each collector returns **mock data

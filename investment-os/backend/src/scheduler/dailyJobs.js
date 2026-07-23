@@ -81,12 +81,36 @@ export async function runMorningRoutine() {
   return { companies: companies.length, alerts: alerts.length };
 }
 
-// When run directly, schedule at 08:30 IST every weekday and also run once now.
+// Lighter hourly refresh: update market snapshot, quotes and alerts so the live
+// dashboard (served at "/") always shows fresh data on its hourly poll.
+export async function runHourlyRefresh() {
+  const log = (m) => console.log(`[scheduler ${new Date().toISOString()}] ${m}`);
+  log("hourly refresh started");
+
+  const market = await fetchMarketSnapshot();
+  for (const m of market) {
+    await prisma.marketData.upsert({ where: { key_asOf: { key: m.key, asOf: m.asOf } }, update: m, create: m });
+  }
+
+  const companies = await prisma.company.findMany();
+  for (const c of companies) {
+    const quote = await fetchQuote(c.symbol);
+    await prisma.stock.upsert({ where: { companyId: c.id }, update: quote, create: { companyId: c.id, ...quote } });
+  }
+
+  const alerts = await runAlertRules();
+  log(`hourly refresh done (${market.length} market keys, ${companies.length} quotes, ${alerts.length} alerts)`);
+  return { market: market.length, companies: companies.length, alerts: alerts.length };
+}
+
+// When run directly, arm both schedules and run once now.
 const isMain = process.argv[1] && process.argv[1].endsWith("dailyJobs.js");
 if (isMain) {
-  // 08:30 Asia/Kolkata, Mon-Fri
+  // Full morning routine: 08:30 Asia/Kolkata, Mon-Fri
   cron.schedule("30 8 * * 1-5", () => runMorningRoutine().catch(console.error), { timezone: "Asia/Kolkata" });
-  console.log("Scheduler armed: weekdays 08:30 IST. Running once now...");
+  // Hourly data refresh at minute 0, every hour
+  cron.schedule("0 * * * *", () => runHourlyRefresh().catch(console.error), { timezone: "Asia/Kolkata" });
+  console.log("Scheduler armed: full routine weekdays 08:30 IST + hourly refresh at :00. Running once now...");
   runMorningRoutine().catch(console.error);
 }
 

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Investment OS — Live Dashboard</title>
+<style>
+  :root {
+    --bg: #020617; --panel: #0f172a; --panel2: #1e293b; --border: #1e293b;
+    --text: #e2e8f0; --muted: #94a3b8; --brand: #3b82f6; --up: #22c55e; --down: #ef4444; --warn: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; }
+  a { color: var(--brand); text-decoration: none; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 16px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0; color: var(--brand); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 10px; }
+  .status { font-size: 12px; color: var(--muted); text-align: right; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--up); margin-right: 5px; }
+  .dot.off { background: var(--down); }
+  button { background: var(--brand); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .grid { display: grid; gap: 12px; }
+  .cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 800px) { .cols-4 { grid-template-columns: repeat(2,1fr); } .cols-3,.cols-2 { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .tile .label { font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  .tile .val { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .tile .sub { font-size: 12px; margin-top: 2px; }
+  .up { color: var(--up); } .down { color: var(--down); } .warn { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 6px 8px; }
+  td { padding: 6px 8px; border-top: 1px solid var(--border); }
+  .row { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px solid var(--border); }
+  .row:first-child { border-top: 0; }
+  .bar { height: 8px; border-radius: 4px; background: var(--panel2); overflow: hidden; margin-top: 4px; }
+  .bar > i { display: block; height: 100%; background: var(--brand); }
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--panel2); color: var(--muted); }
+  .health { font-size: 40px; font-weight: 800; line-height: 1; }
+  .muted { color: var(--muted); }
+  .mini { font-size: 12px; }
+  section { margin-bottom: 18px; }
+  .err { color: var(--down); font-size: 13px; }
+  ul.news { list-style: none; margin: 0; padding: 0; }
+  ul.news li { padding: 8px 0; border-top: 1px solid var(--border); }
+  ul.news li:first-child { border-top: 0; }
+  .alert { display: flex; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); align-items: baseline; }
+  .alert:first-child { border-top: 0; }
+  footer { margin-top: 24px; font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>📊 Investment OS</h1>
+      <div class="mini muted">Live research dashboard — Indian markets</div>
+    </div>
+    <div>
+      <button id="refreshBtn" onclick="loadAll(true)">↻ Refresh now</button>
+      <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span></div>
+    </div>
+  </header>
+
+  <div id="globalError"></div>
+
+  <!-- Indices -->
+  <section>
+    <h2>Market Overview</h2>
+    <div class="grid cols-4" id="indices"></div>
+  </section>
+
+  <div class="grid cols-3" style="margin-bottom:18px">
+    <div class="card"><h2>Market Health</h2><div id="health"></div></div>
+    <div class="card"><h2>Top Gainers</h2><div id="gainers"></div></div>
+    <div class="card"><h2>Top Losers</h2><div id="losers"></div></div>
+  </div>
+
+  <div class="grid cols-2" style="margin-bottom:18px">
+    <div class="card"><h2>Portfolio</h2><div id="portfolio"></div></div>
+    <div class="card"><h2>Watchlist</h2><div id="watchlist"></div></div>
+  </div>
+
+  <div class="grid cols-2" style="margin-bottom:18px">
+    <div class="card"><h2>Sector Performance</h2><div id="sectors"></div></div>
+    <div class="card"><h2>Alerts</h2><div id="alerts"></div></div>
+  </div>
+
+  <section class="card">
+    <h2>AI Scores — Companies</h2>
+    <div id="companies"></div>
+  </section>
+
+  <section class="card">
+    <h2>Latest News</h2>
+    <ul class="news" id="news"></ul>
+  </section>
+
+  <div class="grid cols-4" style="margin-bottom:18px">
+    <div class="card" style="grid-column: 1 / -1"><h2>Macro & Commodities</h2><div class="grid cols-4" id="macro"></div></div>
+  </div>
+
+  <footer>
+    Auto-refreshes every hour. Data is illustrative (mock collectors until live API keys are configured).<br>
+    AI scores &amp; summaries are model-generated opinions — <strong>not financial advice.</strong>
+  </footer>
+</div>
+
+<script>
+const REFRESH_MS = 60 * 60 * 1000; // hourly
+let nextRefreshAt = 0;
+
+const inr = (n) => n == null ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const pct = (n) => (n >= 0 ? "+" : "") + Number(n).toFixed(2) + "%";
+const cls = (n) => (n >= 0 ? "up" : "down");
+const arrow = (n) => (n >= 0 ? "▲" : "▼");
+const el = (id) => document.getElementById(id);
+
+async function getJSON(path) {
+  const res = await fetch(path, { headers: { "Accept": "application/json" } });
+  if (!res.ok) throw new Error(path + " → " + res.status);
+  return res.json();
+}
+
+async function loadAll(manual) {
+  const btn = el("refreshBtn");
+  btn.disabled = true;
+  el("globalError").innerHTML = "";
+  try {
+    const [overview, portfolio, watchlist, alerts, companies] = await Promise.all([
+      getJSON("/api/market/overview").catch(e => ({ _err: e.message })),
+      getJSON("/api/portfolio").catch(() => null),
+      getJSON("/api/watchlist").catch(() => null),
+      getJSON("/api/alerts").catch(() => []),
+      getJSON("/api/companies").catch(() => []),
+    ]);
+
+    if (overview && !overview._err) {
+      renderOverview(overview);
+    } else {
+      el("globalError").innerHTML = '<div class="card err">Backend not reachable. Start it with <code>npm run dev</code> in /backend, then this page will populate.</div>';
+    }
+    if (portfolio) renderPortfolio(portfolio);
+    if (watchlist) renderWatchlist(watchlist);
+    renderAlerts(alerts || []);
+    renderCompanies(companies || []);
+
+    setStatus(true);
+  } catch (e) {
+    el("globalError").innerHTML = '<div class="card err">' + e.message + '</div>';
+    setStatus(false);
+  } finally {
+    btn.disabled = false;
+    nextRefreshAt = Date.now() + REFRESH_MS;
+  }
+}
+
+function setStatus(ok) {
+  el("dot").className = "dot" + (ok ? "" : " off");
+  el("statusText").textContent = ok
+    ? "Updated " + new Date().toLocaleTimeString() + " · auto-refresh hourly"
+    : "Offline — retrying hourly";
+}
+
+const byKey = (arr) => Object.fromEntries((arr || []).map(m => [m.key, m]));
+
+function renderOverview(o) {
+  const m = byKey(o.market);
+
+  // Indices
+  el("indices").innerHTML = ["NIFTY","SENSEX","BANKNIFTY","VIX"].map(k => {
+    const x = m[k]; if (!x) return "";
+    return tile(x.label, x.value.toLocaleString("en-IN"), arrow(x.changePct) + " " + pct(x.changePct), cls(x.changePct));
+  }).join("");
+
+  // Health
+  const h = o.health || {};
+  const htone = h.score >= 70 ? "up" : h.score >= 45 ? "warn" : "down";
+  el("health").innerHTML =
+    '<div class="health ' + htone + '">' + (h.score ?? "—") + '</div>' +
+    '<div class="mini" style="margin-top:6px">' + (h.label || "") + '</div>' +
+    '<div class="mini muted" style="margin-top:6px">Advances ' + (h.advances ?? "—") + ' · Declines ' + (h.declines ?? "—") + ' · VIX ' + (h.vix ?? "—") + '</div>';
+
+  el("gainers").innerHTML = movers(o.topGainers);
+  el("losers").innerHTML = movers(o.topLosers);
+
+  el("sectors").innerHTML = (o.sectors || []).map(s =>
+    '<div class="row"><span>' + s.sector + '</span><span class="' + cls(s.changePct) + '">' + pct(s.changePct) + '</span></div>'
+  ).join("") || '<div class="muted mini">No data</div>';
+
+  el("news").innerHTML = (o.news || []).slice(0, 8).map(n =>
+    '<li><div>' + esc(n.title) + '</div><div class="mini muted">' + esc(n.source || "") +
+    (n.publishedAt ? " · " + new Date(n.publishedAt).toLocaleString() : "") + '</div></li>'
+  ).join("") || '<li class="muted">No news</li>';
+
+  // Macro
+  el("macro").innerHTML = ["USDINR","GOLD","SILVER","OIL","GDP","INFLATION","RBI_RATE","FII_DII"]
+    .map(k => m[k]).filter(Boolean).map(x =>
+      '<div class="tile"><div class="label">' + x.label + '</div><div class="val" style="font-size:18px">' +
+      (x.unit === "INR" ? inr(x.value) : x.value) + (x.unit === "%" ? "%" : "") + '</div></div>'
+    ).join("");
+}
+
+function movers(list) {
+  if (!list || !list.length) return '<div class="muted mini">No data</div>';
+  return list.map(r =>
+    '<div class="row"><a href="#" onclick="return false" title="' + esc(r.name || "") + '">' + r.symbol + '</a>' +
+    '<span><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>'
+  ).join("");
+}
+
+function renderPortfolio(p) {
+  const s = p.summary || {};
+  const rows = p.holdingsDetail || [];
+  let html =
+    '<div class="grid cols-2" style="margin-bottom:10px">' +
+    tile("Current", inr(s.current)) +
+    tile("P / L", inr(s.pnl), pct(s.pnlPct || 0), cls(s.pnl || 0)) +
+    '</div>';
+  html += '<table><thead><tr><th>Symbol</th><th>Qty</th><th>LTP</th><th>P/L</th><th>CAGR</th></tr></thead><tbody>';
+  html += rows.map(r =>
+    '<tr><td>' + r.symbol + '</td><td>' + r.quantity + '</td><td>' + inr(r.ltp) + '</td>' +
+    '<td class="' + cls(r.pnl) + '">' + inr(r.pnl) + '</td>' +
+    '<td class="' + cls(r.cagr) + '">' + r.cagr + '%</td></tr>'
+  ).join("");
+  html += '</tbody></table>';
+  el("portfolio").innerHTML = rows.length ? html : '<div class="muted mini">No holdings</div>';
+}
+
+function renderWatchlist(w) {
+  const items = w.items || [];
+  if (!items.length) { el("watchlist").innerHTML = '<div class="muted mini">Empty</div>'; return; }
+  el("watchlist").innerHTML =
+    '<table><thead><tr><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+    items.map(it => {
+      const st = it.company.stock, ai = it.company.aiScore;
+      return '<tr><td>' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td>' +
+        '<td class="' + cls(st?.changePct || 0) + '">' + (st ? pct(st.changePct) : "—") + '</td>' +
+        '<td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+    }).join("") + '</tbody></table>';
+}
+
+function renderAlerts(alerts) {
+  if (!alerts.length) { el("alerts").innerHTML = '<div class="muted mini">No alerts</div>'; return; }
+  el("alerts").innerHTML = alerts.slice(0, 10).map(a =>
+    '<div class="alert"><span class="pill">' + a.type + '</span><span>' + esc(a.message) +
+    '<div class="mini muted">' + new Date(a.createdAt).toLocaleString() + '</div></span></div>'
+  ).join("");
+}
+
+function renderCompanies(list) {
+  if (!list.length) { el("companies").innerHTML = '<div class="muted mini">No companies</div>'; return; }
+  el("companies").innerHTML =
+    '<table><thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+    list.map(c => {
+      const st = c.stock, ai = c.aiScore;
+      return '<tr><td>' + c.symbol + '</td><td class="muted">' + esc(c.name) + '</td>' +
+        '<td>' + inr(st?.price) + '</td>' +
+        '<td class="' + cls(st?.changePct || 0) + '">' + (st ? pct(st.changePct) : "—") + '</td>' +
+        '<td>' + (st?.pe ?? "—") + '</td>' +
+        '<td class="up">' + (ai?.growthScore ?? "—") + '</td>' +
+        '<td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+    }).join("") + '</tbody></table>';
+}
+
+function tile(label, val, sub, tone) {
+  return '<div class="tile card"><div class="label">' + label + '</div><div class="val ' + (tone || "") + '">' + val + '</div>' +
+    (sub ? '<div class="sub ' + (tone || "muted") + '">' + sub + '</div>' : "") + '</div>';
+}
+
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c])); }
+
+// initial + hourly auto refresh
+loadAll(false);
+setInterval(() => loadAll(false), REFRESH_MS);
+</script>
+</body>
+</html>

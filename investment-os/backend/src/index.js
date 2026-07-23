@@ -3,6 +3,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 import companies from "./routes/companies.js";
 import market from "./routes/market.js";
@@ -19,6 +21,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 if (process.env.NODE_ENV !== "test") app.use(morgan("dev"));
+
+// Serve the standalone live dashboard (public/index.html) at "/".
+const __dirname = dirname(fileURLToPath(import.meta.url));
+app.use(express.static(join(__dirname, "..", "public")));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "investment-os", time: new Date().toISOString() }));
 
