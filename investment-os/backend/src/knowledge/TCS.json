@@ -1,0 +1,20 @@
+{
+  "symbol": "TCS",
+  "name": "Tata Consultancy Services Ltd",
+  "sector": "Information Technology",
+  "moat": "Largest Indian IT services firm with industry-leading margins, low attrition and a diversified client base.",
+  "growthFactors": [
+    { "factor": "Large deal wins (TCV)", "weight": 0.25, "signal": "Consistent mega-deal wins underpin durable growth." },
+    { "factor": "AI / cloud transformation demand", "weight": 0.25, "signal": "Enterprise modernisation and AI programs expand scope." },
+    { "factor": "BFSI & retail vertical recovery", "weight": 0.20, "signal": "Recovery in key verticals lifts volumes." },
+    { "factor": "US / Europe IT spending", "weight": 0.15, "signal": "Strong developed-market budgets support revenue." },
+    { "factor": "Industry-leading margins", "weight": 0.15, "signal": "Best-in-class delivery keeps margins resilient." }
+  ],
+  "negativeFactors": [
+    { "factor": "Global macro slowdown", "weight": 0.30, "signal": "Recession fears delay client decision-making." },
+    { "factor": "BFSI spending cuts", "weight": 0.25, "signal": "Weak banking-sector budgets hit the largest vertical." },
+    { "factor": "Strong rupee", "weight": 0.20, "signal": "A stronger rupee compresses reported margins." },
+    { "factor": "Weak quarterly earnings", "weight": 0.15, "signal": "Revenue or margin miss vs estimates." },
+    { "factor": "Slower deal conversion", "weight": 0.10, "signal": "Longer sales cycles delay revenue realisation." }
+  ]
+}

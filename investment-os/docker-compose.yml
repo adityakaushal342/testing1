@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: investment_os_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: investos
+      POSTGRES_PASSWORD: investos
+      POSTGRES_DB: investment_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - investos_pgdata:/var/lib/postgresql/data
+
+volumes:
+  investos_pgdata:

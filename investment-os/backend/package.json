@@ -1,0 +1,27 @@
+{
+  "name": "investment-os-backend",
+  "version": "0.1.0",
+  "description": "Investment OS backend — Express API + Prisma (Phases 2-12)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "seed": "node prisma/seed.js",
+    "scheduler": "node src/scheduler/dailyJobs.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "prisma": "^5.18.0"
+  }
+}
