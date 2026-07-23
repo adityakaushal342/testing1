@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Investment OS — Standalone Dashboard</title>
+<style>
+  :root {
+    --bg:#020617; --panel:#0f172a; --panel2:#1e293b; --border:#1e293b;
+    --text:#e2e8f0; --muted:#94a3b8; --brand:#3b82f6; --up:#22c55e; --down:#ef4444; --warn:#f59e0b;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; font-size:14px; }
+  a { color:var(--brand); text-decoration:none; }
+  .wrap { max-width:1200px; margin:0 auto; padding:16px; }
+  header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  h1 { font-size:20px; margin:0; color:var(--brand); }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 10px; }
+  .status { font-size:12px; color:var(--muted); text-align:right; margin-top:6px; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--up); margin-right:5px; }
+  .dot.demo { background:var(--warn); }
+  button { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; }
+  .grid { display:grid; gap:12px; }
+  .cols-4 { grid-template-columns:repeat(4,1fr); }
+  .cols-3 { grid-template-columns:repeat(3,1fr); }
+  .cols-2 { grid-template-columns:repeat(2,1fr); }
+  @media (max-width:800px){ .cols-4{grid-template-columns:repeat(2,1fr);} .cols-3,.cols-2{grid-template-columns:1fr;} }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+  .tile .label { font-size:11px; text-transform:uppercase; color:var(--muted); }
+  .tile .val { font-size:22px; font-weight:700; margin-top:4px; }
+  .tile .sub { font-size:12px; margin-top:2px; }
+  .up{color:var(--up);} .down{color:var(--down);} .warn{color:var(--warn);}
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:600; padding:6px 8px; }
+  td { padding:6px 8px; border-top:1px solid var(--border); }
+  .row { display:flex; justify-content:space-between; padding:5px 0; border-top:1px solid var(--border); }
+  .row:first-child{border-top:0;}
+  .pill { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; background:var(--panel2); color:var(--muted); }
+  .health { font-size:40px; font-weight:800; line-height:1; }
+  .muted{color:var(--muted);} .mini{font-size:12px;}
+  section { margin-bottom:18px; }
+  ul.news { list-style:none; margin:0; padding:0; }
+  ul.news li { padding:8px 0; border-top:1px solid var(--border); }
+  ul.news li:first-child{border-top:0;}
+  .alert { display:flex; gap:8px; padding:8px 0; border-top:1px solid var(--border); align-items:baseline; }
+  .alert:first-child{border-top:0;}
+  .banner { background:#422006; border:1px solid #854d0e; color:#fde68a; border-radius:10px; padding:10px 14px; font-size:12px; margin-bottom:16px; }
+  footer { margin-top:24px; font-size:11px; color:var(--muted); text-align:center; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>📊 Investment OS</h1>
+      <div class="mini muted">Standalone dashboard — no server needed</div>
+    </div>
+    <div>
+      <button onclick="loadAll()">↻ Refresh now</button>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span></div>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section>
+    <h2>Market Overview</h2>
+    <div class="grid cols-4" id="indices"></div>
+  </section>
+
+  <div class="grid cols-3" style="margin-bottom:18px">
+    <div class="card"><h2>Market Health</h2><div id="health"></div></div>
+    <div class="card"><h2>Top Gainers</h2><div id="gainers"></div></div>
+    <div class="card"><h2>Top Losers</h2><div id="losers"></div></div>
+  </div>
+
+  <div class="grid cols-2" style="margin-bottom:18px">
+    <div class="card"><h2>Portfolio</h2><div id="portfolio"></div></div>
+    <div class="card"><h2>Watchlist</h2><div id="watchlist"></div></div>
+  </div>
+
+  <div class="grid cols-2" style="margin-bottom:18px">
+    <div class="card"><h2>Sector Performance</h2><div id="sectors"></div></div>
+    <div class="card"><h2>Alerts</h2><div id="alerts"></div></div>
+  </div>
+
+  <section class="card">
+    <h2>AI Scores — Companies</h2>
+    <div id="companies"></div>
+  </section>
+
+  <section class="card">
+    <h2>Latest News</h2>
+    <ul class="news" id="news"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Macro &amp; Commodities</h2>
+    <div class="grid cols-4" id="macro"></div>
+  </section>
+
+  <footer>
+    Auto-refreshes every hour. Numbers are illustrative demo data baked into this file.<br>
+    AI scores &amp; summaries are model-generated opinions — <strong>not financial advice.</strong>
+  </footer>
+</div>
+
+<script>
+/* ============================================================================
+   Embedded demo data (mirrors the backend API responses). This makes the file
+   work by just opening it — no server, no database, no npm.
+   If the backend IS running and this file is served from it, live /api data is
+   used instead and this demo is the fallback.
+   ========================================================================== */
+const now = () => new Date().toISOString();
+
+const DEMO = {
+  overview: {
+    market: [
+      { key:"NIFTY", label:"Nifty 50", value:24350.5, change:112.3, changePct:0.46, unit:"pts" },
+      { key:"SENSEX", label:"Sensex", value:80125.2, change:358.1, changePct:0.45, unit:"pts" },
+      { key:"BANKNIFTY", label:"Bank Nifty", value:51420.0, change:-85.4, changePct:-0.17, unit:"pts" },
+      { key:"VIX", label:"India VIX", value:13.2, change:-0.4, changePct:-2.94, unit:"pts" },
+      { key:"USDINR", label:"USD/INR", value:83.4, changePct:0.14, unit:"INR" },
+      { key:"GOLD", label:"Gold (10g)", value:72500, changePct:0.44, unit:"INR" },
+      { key:"SILVER", label:"Silver (kg)", value:91500, changePct:-0.49, unit:"INR" },
+      { key:"OIL", label:"Brent Crude", value:82.1, changePct:-0.73, unit:"USD" },
+      { key:"GDP", label:"GDP growth", value:6.8, unit:"%" },
+      { key:"INFLATION", label:"CPI Inflation", value:4.9, unit:"%" },
+      { key:"RBI_RATE", label:"RBI Repo Rate", value:6.5, unit:"%" },
+      { key:"FII_DII", label:"FII net (₹ cr)", value:1240, unit:"INR cr" },
+    ],
+    health: { score:72, label:"Bullish", advances:3, declines:2, vix:13.2 },
+    topGainers: [
+      { symbol:"RELIANCE", name:"Reliance Industries", price:2945.6, changePct:0.62 },
+      { symbol:"INFOSYS", name:"Infosys", price:1685.3, changePct:0.58 },
+      { symbol:"ITC", name:"ITC", price:445.2, changePct:0.29 },
+      { symbol:"HDFCBANK", name:"HDFC Bank", price:1642.0, changePct:0.25 },
+    ],
+    topLosers: [
+      { symbol:"TCS", name:"Tata Consultancy", price:4120.0, changePct:-0.54 },
+    ],
+    sectors: [
+      { sector:"Metal", changePct:2.1 }, { sector:"Auto", changePct:1.5 },
+      { sector:"IT", changePct:1.2 }, { sector:"Energy", changePct:0.8 },
+      { sector:"FMCG", changePct:0.4 }, { sector:"Banking", changePct:-0.3 },
+      { sector:"Pharma", changePct:-0.6 }, { sector:"Realty", changePct:-1.1 },
+    ],
+    news: [
+      { title:"Reliance Jio adds record subscribers as 5G rollout accelerates", source:"MarketWire", publishedAt:now() },
+      { title:"Infosys raises FY revenue guidance on AI demand", source:"TechDesk", publishedAt:now() },
+      { title:"Nifty hits fresh high on strong FII inflows", source:"MarketWire", publishedAt:now() },
+      { title:"TCS wins multi-year deal with European bank", source:"BizToday", publishedAt:now() },
+      { title:"RBI holds repo rate steady, retains stance", source:"PolicyWatch", publishedAt:now() },
+      { title:"Crude oil slips as demand worries return", source:"CommodityLine", publishedAt:now() },
+    ],
+  },
+  portfolio: {
+    summary: { invested:97250, current:104361, pnl:7111, pnlPct:7.31 },
+    holdingsDetail: [
+      { symbol:"RELIANCE", quantity:10, ltp:2945.6, pnl:4456, pnlPct:17.82, cagr:16.4 },
+      { symbol:"TCS", quantity:5, ltp:4120.0, pnl:2600, pnlPct:14.44, cagr:13.1 },
+      { symbol:"INFOSYS", quantity:15, ltp:1685.3, pnl:3529, pnlPct:16.22, cagr:15.0 },
+    ],
+  },
+  watchlist: {
+    items: [
+      { id:1, company:{ symbol:"HDFCBANK", name:"HDFC Bank", stock:{ price:1642.0, changePct:0.25 }, aiScore:{ growthScore:61, riskScore:38 } } },
+      { id:2, company:{ symbol:"ITC", name:"ITC", stock:{ price:445.2, changePct:0.29 }, aiScore:{ growthScore:58, riskScore:34 } } },
+    ],
+  },
+  alerts: [
+    { type:"QUARTER_RESULT", message:"RELIANCE Q2 FY2025 results released", createdAt:now() },
+    { type:"FII_BUYING", message:"FII buying increased in INFOSYS (32.4% → 33.2%)", createdAt:now() },
+    { type:"DIVIDEND", message:"TCS announced ₹41.2 final dividend", createdAt:now() },
+    { type:"PRICE_MOVE", message:"METAL sector up 2.1% today", createdAt:now() },
+  ],
+  companies: [
+    { symbol:"RELIANCE", name:"Reliance Industries Ltd", stock:{ price:2945.6, changePct:0.62, pe:24.5 }, aiScore:{ growthScore:68, riskScore:52 } },
+    { symbol:"TCS", name:"Tata Consultancy Services Ltd", stock:{ price:4120.0, changePct:-0.54, pe:29.8 }, aiScore:{ growthScore:71, riskScore:44 } },
+    { symbol:"INFOSYS", name:"Infosys Ltd", stock:{ price:1685.3, changePct:0.58, pe:26.1 }, aiScore:{ growthScore:70, riskScore:45 } },
+    { symbol:"HDFCBANK", name:"HDFC Bank Ltd", stock:{ price:1642.0, changePct:0.25, pe:18.9 }, aiScore:{ growthScore:61, riskScore:38 } },
+    { symbol:"ITC", name:"ITC Ltd", stock:{ price:445.2, changePct:0.29, pe:27.0 }, aiScore:{ growthScore:58, riskScore:34 } },
+  ],
+};
+
+const REFRESH_MS = 60 * 60 * 1000; // hourly
+const inr = (n) => n == null ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const pct = (n) => (n >= 0 ? "+" : "") + Number(n).toFixed(2) + "%";
+const cls = (n) => (n >= 0 ? "up" : "down");
+const arrow = (n) => (n >= 0 ? "▲" : "▼");
+const el = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
+const byKey = (arr) => Object.fromEntries((arr || []).map(m => [m.key, m]));
+
+async function tryLive() {
+  try {
+    const [overview, portfolio, watchlist, alerts, companies] = await Promise.all([
+      fetch("/api/market/overview").then(r => r.ok ? r.json() : Promise.reject()),
+      fetch("/api/portfolio").then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch("/api/watchlist").then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch("/api/alerts").then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch("/api/companies").then(r => r.ok ? r.json() : []).catch(() => []),
+    ]);
+    return { overview, portfolio, watchlist, alerts, companies, live: true };
+  } catch {
+    return null;
+  }
+}
+
+async function loadAll() {
+  const live = await tryLive();
+  const data = live || { ...DEMO, live: false };
+  render(data);
+
+  el("dot").className = "dot" + (data.live ? "" : " demo");
+  el("statusText").textContent = (data.live ? "Live · " : "Demo · ") + "updated " + new Date().toLocaleTimeString() + " · auto-refresh hourly";
+  el("banner").innerHTML = data.live
+    ? "✅ Connected to backend — showing live data."
+    : "ℹ️ Showing baked-in <b>demo data</b> (no backend running). To see live data: run the backend (<code>npm run dev</code> in /backend) and open <code>http://localhost:4000</code>.";
+}
+
+function render(d) {
+  const o = d.overview || DEMO.overview;
+  const m = byKey(o.market);
+
+  el("indices").innerHTML = ["NIFTY","SENSEX","BANKNIFTY","VIX"].map(k => {
+    const x = m[k]; if (!x) return "";
+    return tile(x.label, x.value.toLocaleString("en-IN"), arrow(x.changePct) + " " + pct(x.changePct), cls(x.changePct));
+  }).join("");
+
+  const h = o.health || {};
+  const htone = h.score >= 70 ? "up" : h.score >= 45 ? "warn" : "down";
+  el("health").innerHTML =
+    '<div class="health ' + htone + '">' + (h.score ?? "—") + '</div>' +
+    '<div class="mini" style="margin-top:6px">' + (h.label || "") + '</div>' +
+    '<div class="mini muted" style="margin-top:6px">Advances ' + (h.advances ?? "—") + ' · Declines ' + (h.declines ?? "—") + ' · VIX ' + (h.vix ?? "—") + '</div>';
+
+  el("gainers").innerHTML = movers(o.topGainers);
+  el("losers").innerHTML = movers(o.topLosers);
+
+  el("sectors").innerHTML = (o.sectors || []).map(s =>
+    '<div class="row"><span>' + s.sector + '</span><span class="' + cls(s.changePct) + '">' + pct(s.changePct) + '</span></div>'
+  ).join("");
+
+  el("news").innerHTML = (o.news || []).slice(0, 8).map(n =>
+    '<li><div>' + esc(n.title) + '</div><div class="mini muted">' + esc(n.source || "") + '</div></li>'
+  ).join("");
+
+  el("macro").innerHTML = ["USDINR","GOLD","SILVER","OIL","GDP","INFLATION","RBI_RATE","FII_DII"]
+    .map(k => m[k]).filter(Boolean).map(x =>
+      '<div class="tile"><div class="label">' + x.label + '</div><div class="val" style="font-size:18px">' +
+      (x.unit === "INR" ? inr(x.value) : x.value) + (x.unit === "%" ? "%" : "") + '</div></div>'
+    ).join("");
+
+  // Portfolio
+  const p = d.portfolio || DEMO.portfolio;
+  const ps = p.summary || {};
+  el("portfolio").innerHTML =
+    '<div class="grid cols-2" style="margin-bottom:10px">' +
+    tile("Current", inr(ps.current)) +
+    tile("P / L", inr(ps.pnl), pct(ps.pnlPct || 0), cls(ps.pnl || 0)) + '</div>' +
+    '<table><thead><tr><th>Symbol</th><th>Qty</th><th>LTP</th><th>P/L</th><th>CAGR</th></tr></thead><tbody>' +
+    (p.holdingsDetail || []).map(r =>
+      '<tr><td>' + r.symbol + '</td><td>' + r.quantity + '</td><td>' + inr(r.ltp) + '</td>' +
+      '<td class="' + cls(r.pnl) + '">' + inr(r.pnl) + '</td><td class="' + cls(r.cagr) + '">' + r.cagr + '%</td></tr>'
+    ).join("") + '</tbody></table>';
+
+  // Watchlist
+  const items = (d.watchlist || DEMO.watchlist).items || [];
+  el("watchlist").innerHTML =
+    '<table><thead><tr><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+    items.map(it => {
+      const st = it.company.stock, ai = it.company.aiScore;
+      return '<tr><td>' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td>' +
+        '<td class="' + cls(st?.changePct || 0) + '">' + (st ? pct(st.changePct) : "—") + '</td>' +
+        '<td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+    }).join("") + '</tbody></table>';
+
+  // Alerts
+  const alerts = d.alerts || DEMO.alerts;
+  el("alerts").innerHTML = alerts.slice(0, 10).map(a =>
+    '<div class="alert"><span class="pill">' + a.type + '</span><span>' + esc(a.message) +
+    '<div class="mini muted">' + new Date(a.createdAt).toLocaleString() + '</div></span></div>'
+  ).join("");
+
+  // Companies
+  const list = d.companies || DEMO.companies;
+  el("companies").innerHTML =
+    '<table><thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+    list.map(c => {
+      const st = c.stock, ai = c.aiScore;
+      return '<tr><td>' + c.symbol + '</td><td class="muted">' + esc(c.name) + '</td>' +
+        '<td>' + inr(st?.price) + '</td>' +
+        '<td class="' + cls(st?.changePct || 0) + '">' + (st ? pct(st.changePct) : "—") + '</td>' +
+        '<td>' + (st?.pe ?? "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td>' +
+        '<td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+    }).join("") + '</tbody></table>';
+}
+
+function movers(list) {
+  if (!list || !list.length) return '<div class="muted mini">No data</div>';
+  return list.map(r =>
+    '<div class="row"><span title="' + esc(r.name || "") + '">' + r.symbol + '</span>' +
+    '<span><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>'
+  ).join("");
+}
+
+function tile(label, val, sub, tone) {
+  return '<div class="tile card"><div class="label">' + label + '</div><div class="val ' + (tone || "") + '">' + val + '</div>' +
+    (sub ? '<div class="sub ' + (tone || "muted") + '">' + sub + '</div>' : "") + '</div>';
+}
+
+loadAll();
+setInterval(loadAll, REFRESH_MS);
+</script>
+</body>
+</html>
