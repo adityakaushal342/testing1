@@ -17,7 +17,20 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const PORT = process.env.PORT || 4300;
-const HTML_FILE = path.join(__dirname, "standalone-dashboard.html");
+
+// Locate the dashboard HTML. Prefer standalone-dashboard.html, but fall back to
+// any .html in this folder (handles renamed/duplicated downloads like
+// "standalone-dashboard (1).html").
+function findDashboardHtml() {
+  const preferred = path.join(__dirname, "standalone-dashboard.html");
+  if (fs.existsSync(preferred)) return preferred;
+  let files = [];
+  try { files = fs.readdirSync(__dirname).filter((f) => f.toLowerCase().endsWith(".html")); } catch {}
+  if (!files.length) return null;
+  const score = (n) => { n = n.toLowerCase(); let s = 0; if (n.includes("standalone")) s += 2; if (n.includes("dashboard")) s += 2; return s; };
+  files.sort((a, b) => score(b) - score(a));
+  return path.join(__dirname, files[0]);
+}
 
 // Only these hosts may be proxied (prevents this from being an open proxy).
 const ALLOWED_HOSTS = new Set([
@@ -57,12 +70,19 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/health") return send(res, 200, "application/json", JSON.stringify({ ok: true }));
 
   // --- serve the dashboard --------------------------------------------------
+  const htmlFile = findDashboardHtml();
+  if (!htmlFile) {
+    let listing = "";
+    try { listing = fs.readdirSync(__dirname).join(", "); } catch {}
+    return send(res, 500, "text/plain",
+      "No dashboard .html found in this folder:\n  " + __dirname +
+      "\nPut standalone-dashboard.html here (next to this server file).\nFiles currently here: " + listing);
+  }
   try {
-    const html = fs.readFileSync(HTML_FILE);
     res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(html);
-  } catch {
-    send(res, 500, "text/plain", "Could not read standalone-dashboard.html (keep it next to live-server.js).");
+    res.end(fs.readFileSync(htmlFile));
+  } catch (e) {
+    send(res, 500, "text/plain", "Could not read " + path.basename(htmlFile) + ": " + e.message);
   }
 });
 
