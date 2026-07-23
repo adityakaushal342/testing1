@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Investment OS — Standalone Dashboard</title>
+<title>Investment OS — Standalone Live Dashboard</title>
 <style>
   :root {
     --bg:#020617; --panel:#0f172a; --panel2:#1e293b; --border:#1e293b;
@@ -18,9 +18,10 @@
   h1 { font-size:20px; margin:0; color:var(--brand); }
   h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 10px; }
   .status { font-size:12px; color:var(--muted); text-align:right; margin-top:6px; }
-  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--up); margin-right:5px; }
-  .dot.demo { background:var(--warn); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--muted); margin-right:5px; }
+  .dot.live { background:var(--up); } .dot.demo { background:var(--warn); } .dot.load { background:var(--brand); }
   button { background:var(--brand); color:#fff; border:0; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
   .grid { display:grid; gap:12px; }
   .cols-4 { grid-template-columns:repeat(4,1fr); }
   .cols-3 { grid-template-columns:repeat(3,1fr); }
@@ -45,7 +46,9 @@
   ul.news li:first-child{border-top:0;}
   .alert { display:flex; gap:8px; padding:8px 0; border-top:1px solid var(--border); align-items:baseline; }
   .alert:first-child{border-top:0;}
-  .banner { background:#422006; border:1px solid #854d0e; color:#fde68a; border-radius:10px; padding:10px 14px; font-size:12px; margin-bottom:16px; }
+  .banner { border-radius:10px; padding:10px 14px; font-size:12px; margin-bottom:16px; line-height:1.5; }
+  .banner.demo { background:#422006; border:1px solid #854d0e; color:#fde68a; }
+  .banner.live { background:#052e16; border:1px solid #166534; color:#bbf7d0; }
   footer { margin-top:24px; font-size:11px; color:var(--muted); text-align:center; line-height:1.6; }
 </style>
 </head>
@@ -54,15 +57,15 @@
   <header>
     <div>
       <h1>📊 Investment OS</h1>
-      <div class="mini muted">Standalone dashboard — no server needed</div>
+      <div class="mini muted">Standalone live dashboard — no server needed</div>
     </div>
     <div>
-      <button onclick="loadAll()">↻ Refresh now</button>
-      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Loading…</span></div>
+      <button id="btn" onclick="loadAll()">↻ Refresh now</button>
+      <div class="status"><span class="dot load" id="dot"></span><span id="statusText">Loading…</span></div>
     </div>
   </header>
 
-  <div class="banner" id="banner"></div>
+  <div class="banner demo" id="banner">Fetching live data…</div>
 
   <section>
     <h2>Market Overview</h2>
@@ -76,7 +79,7 @@
   </div>
 
   <div class="grid cols-2" style="margin-bottom:18px">
-    <div class="card"><h2>Portfolio</h2><div id="portfolio"></div></div>
+    <div class="card"><h2>Portfolio (live P/L)</h2><div id="portfolio"></div></div>
     <div class="card"><h2>Watchlist</h2><div id="watchlist"></div></div>
   </div>
 
@@ -86,7 +89,7 @@
   </div>
 
   <section class="card">
-    <h2>AI Scores — Companies</h2>
+    <h2>Companies (live price)</h2>
     <div id="companies"></div>
   </section>
 
@@ -101,100 +104,113 @@
   </section>
 
   <footer>
-    Auto-refreshes every hour. Numbers are illustrative demo data baked into this file.<br>
-    AI scores &amp; summaries are model-generated opinions — <strong>not financial advice.</strong>
+    Auto-refreshes hourly. Live prices via Yahoo Finance (through a free CORS proxy) — quotes may be
+    delayed and only move during market hours. Quarter results, shareholding, sectors &amp; AI scores are
+    illustrative. <strong>Not financial advice.</strong>
   </footer>
 </div>
 
 <script>
 /* ============================================================================
-   Embedded demo data (mirrors the backend API responses). This makes the file
-   work by just opening it — no server, no database, no npm.
-   If the backend IS running and this file is served from it, live /api data is
-   used instead and this demo is the fallback.
+   Two ways this page gets data:
+   1. If served by the backend (http://localhost:4000), it uses /api (full data
+      incl. AI scores, quarter results, alerts).
+   2. If opened directly as a file, it fetches LIVE Yahoo Finance quotes in the
+      browser via a free CORS proxy — real prices, real portfolio P/L, real news
+      — and uses static values only for things with no free browser source.
+   Any failure falls back to baked-in demo data so the page always renders.
    ========================================================================== */
-const now = () => new Date().toISOString();
-
-const DEMO = {
-  overview: {
-    market: [
-      { key:"NIFTY", label:"Nifty 50", value:24350.5, change:112.3, changePct:0.46, unit:"pts" },
-      { key:"SENSEX", label:"Sensex", value:80125.2, change:358.1, changePct:0.45, unit:"pts" },
-      { key:"BANKNIFTY", label:"Bank Nifty", value:51420.0, change:-85.4, changePct:-0.17, unit:"pts" },
-      { key:"VIX", label:"India VIX", value:13.2, change:-0.4, changePct:-2.94, unit:"pts" },
-      { key:"USDINR", label:"USD/INR", value:83.4, changePct:0.14, unit:"INR" },
-      { key:"GOLD", label:"Gold (10g)", value:72500, changePct:0.44, unit:"INR" },
-      { key:"SILVER", label:"Silver (kg)", value:91500, changePct:-0.49, unit:"INR" },
-      { key:"OIL", label:"Brent Crude", value:82.1, changePct:-0.73, unit:"USD" },
-      { key:"GDP", label:"GDP growth", value:6.8, unit:"%" },
-      { key:"INFLATION", label:"CPI Inflation", value:4.9, unit:"%" },
-      { key:"RBI_RATE", label:"RBI Repo Rate", value:6.5, unit:"%" },
-      { key:"FII_DII", label:"FII net (₹ cr)", value:1240, unit:"INR cr" },
-    ],
-    health: { score:72, label:"Bullish", advances:3, declines:2, vix:13.2 },
-    topGainers: [
-      { symbol:"RELIANCE", name:"Reliance Industries", price:2945.6, changePct:0.62 },
-      { symbol:"INFOSYS", name:"Infosys", price:1685.3, changePct:0.58 },
-      { symbol:"ITC", name:"ITC", price:445.2, changePct:0.29 },
-      { symbol:"HDFCBANK", name:"HDFC Bank", price:1642.0, changePct:0.25 },
-    ],
-    topLosers: [
-      { symbol:"TCS", name:"Tata Consultancy", price:4120.0, changePct:-0.54 },
-    ],
-    sectors: [
-      { sector:"Metal", changePct:2.1 }, { sector:"Auto", changePct:1.5 },
-      { sector:"IT", changePct:1.2 }, { sector:"Energy", changePct:0.8 },
-      { sector:"FMCG", changePct:0.4 }, { sector:"Banking", changePct:-0.3 },
-      { sector:"Pharma", changePct:-0.6 }, { sector:"Realty", changePct:-1.1 },
-    ],
-    news: [
-      { title:"Reliance Jio adds record subscribers as 5G rollout accelerates", source:"MarketWire", publishedAt:now() },
-      { title:"Infosys raises FY revenue guidance on AI demand", source:"TechDesk", publishedAt:now() },
-      { title:"Nifty hits fresh high on strong FII inflows", source:"MarketWire", publishedAt:now() },
-      { title:"TCS wins multi-year deal with European bank", source:"BizToday", publishedAt:now() },
-      { title:"RBI holds repo rate steady, retains stance", source:"PolicyWatch", publishedAt:now() },
-      { title:"Crude oil slips as demand worries return", source:"CommodityLine", publishedAt:now() },
-    ],
-  },
-  portfolio: {
-    summary: { invested:97250, current:104361, pnl:7111, pnlPct:7.31 },
-    holdingsDetail: [
-      { symbol:"RELIANCE", quantity:10, ltp:2945.6, pnl:4456, pnlPct:17.82, cagr:16.4 },
-      { symbol:"TCS", quantity:5, ltp:4120.0, pnl:2600, pnlPct:14.44, cagr:13.1 },
-      { symbol:"INFOSYS", quantity:15, ltp:1685.3, pnl:3529, pnlPct:16.22, cagr:15.0 },
-    ],
-  },
-  watchlist: {
-    items: [
-      { id:1, company:{ symbol:"HDFCBANK", name:"HDFC Bank", stock:{ price:1642.0, changePct:0.25 }, aiScore:{ growthScore:61, riskScore:38 } } },
-      { id:2, company:{ symbol:"ITC", name:"ITC", stock:{ price:445.2, changePct:0.29 }, aiScore:{ growthScore:58, riskScore:34 } } },
-    ],
-  },
-  alerts: [
-    { type:"QUARTER_RESULT", message:"RELIANCE Q2 FY2025 results released", createdAt:now() },
-    { type:"FII_BUYING", message:"FII buying increased in INFOSYS (32.4% → 33.2%)", createdAt:now() },
-    { type:"DIVIDEND", message:"TCS announced ₹41.2 final dividend", createdAt:now() },
-    { type:"PRICE_MOVE", message:"METAL sector up 2.1% today", createdAt:now() },
-  ],
-  companies: [
-    { symbol:"RELIANCE", name:"Reliance Industries Ltd", stock:{ price:2945.6, changePct:0.62, pe:24.5 }, aiScore:{ growthScore:68, riskScore:52 } },
-    { symbol:"TCS", name:"Tata Consultancy Services Ltd", stock:{ price:4120.0, changePct:-0.54, pe:29.8 }, aiScore:{ growthScore:71, riskScore:44 } },
-    { symbol:"INFOSYS", name:"Infosys Ltd", stock:{ price:1685.3, changePct:0.58, pe:26.1 }, aiScore:{ growthScore:70, riskScore:45 } },
-    { symbol:"HDFCBANK", name:"HDFC Bank Ltd", stock:{ price:1642.0, changePct:0.25, pe:18.9 }, aiScore:{ growthScore:61, riskScore:38 } },
-    { symbol:"ITC", name:"ITC Ltd", stock:{ price:445.2, changePct:0.29, pe:27.0 }, aiScore:{ growthScore:58, riskScore:34 } },
-  ],
-};
 
 const REFRESH_MS = 60 * 60 * 1000; // hourly
+
+// Instruments we track. y = Yahoo ticker. NSE stocks use .NS (Infosys = INFY).
+const INDEX_DEFS = [
+  { key:"NIFTY", label:"Nifty 50", y:"^NSEI", unit:"pts", demo:24350.5 },
+  { key:"SENSEX", label:"Sensex", y:"^BSESN", unit:"pts", demo:80125.2 },
+  { key:"BANKNIFTY", label:"Bank Nifty", y:"^NSEBANK", unit:"pts", demo:51420 },
+  { key:"VIX", label:"India VIX", y:"^INDIAVIX", unit:"pts", demo:13.2 },
+];
+const MACRO_DEFS = [
+  { key:"USDINR", label:"USD/INR", y:"INR=X", unit:"INR", demo:83.4 },
+  { key:"GOLD", label:"Gold (USD/oz)", y:"GC=F", unit:"USD", demo:2350 },
+  { key:"SILVER", label:"Silver (USD/oz)", y:"SI=F", unit:"USD", demo:28.5 },
+  { key:"OIL", label:"Brent Crude", y:"BZ=F", unit:"USD", demo:82.1 },
+  { key:"GDP", label:"GDP growth", unit:"%", demo:6.8, static:true },
+  { key:"INFLATION", label:"CPI Inflation", unit:"%", demo:4.9, static:true },
+  { key:"RBI_RATE", label:"RBI Repo Rate", unit:"%", demo:6.5, static:true },
+  { key:"FII_DII", label:"FII net (₹ cr)", unit:"INR cr", demo:1240, static:true },
+];
+const STOCKS = [
+  { sym:"RELIANCE", y:"RELIANCE.NS", name:"Reliance Industries Ltd", pe:24.5, g:68, r:52, qty:10, avg:2500, demo:2945.6 },
+  { sym:"TCS", y:"TCS.NS", name:"Tata Consultancy Services Ltd", pe:29.8, g:71, r:44, qty:5, avg:3600, demo:4120 },
+  { sym:"INFOSYS", y:"INFY.NS", name:"Infosys Ltd", pe:26.1, g:70, r:45, qty:15, avg:1450, demo:1685.3 },
+  { sym:"HDFCBANK", y:"HDFCBANK.NS", name:"HDFC Bank Ltd", pe:18.9, g:61, r:38, qty:0, avg:0, demo:1642 },
+  { sym:"ITC", y:"ITC.NS", name:"ITC Ltd", pe:27.0, g:58, r:34, qty:0, avg:0, demo:445.2 },
+];
+const SECTORS = [
+  { sector:"Metal", changePct:2.1 }, { sector:"Auto", changePct:1.5 }, { sector:"IT", changePct:1.2 },
+  { sector:"Energy", changePct:0.8 }, { sector:"FMCG", changePct:0.4 }, { sector:"Banking", changePct:-0.3 },
+  { sector:"Pharma", changePct:-0.6 }, { sector:"Realty", changePct:-1.1 },
+];
+
 const inr = (n) => n == null ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+const num = (n) => n == null ? "—" : Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 const pct = (n) => (n >= 0 ? "+" : "") + Number(n).toFixed(2) + "%";
 const cls = (n) => (n >= 0 ? "up" : "down");
 const arrow = (n) => (n >= 0 ? "▲" : "▼");
+const round = (n) => Number(Number(n).toFixed(2));
 const el = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
-const byKey = (arr) => Object.fromEntries((arr || []).map(m => [m.key, m]));
 
-async function tryLive() {
+// --- CORS proxies (tried in order) so the browser can reach Yahoo/Google -----
+const PROXIES = [
+  (u) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+  (u) => "https://corsproxy.io/?url=" + encodeURIComponent(u),
+];
+async function proxied(url) {
+  let lastErr;
+  for (const p of PROXIES) {
+    try {
+      const res = await fetch(p(url), { cache: "no-store" });
+      if (res.ok) return res;
+      lastErr = new Error("status " + res.status);
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error("all proxies failed");
+}
+async function yf(symbol, range = "5d", interval = "1d") {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+  const res = await proxied(url);
+  const j = await res.json();
+  const m = j?.chart?.result?.[0]?.meta;
+  if (!m || m.regularMarketPrice == null) throw new Error("no meta " + symbol);
+  const price = m.regularMarketPrice;
+  const prev = m.chartPreviousClose ?? m.previousClose ?? price;
+  return { price, change: price - prev, changePct: prev ? (price - prev) / prev * 100 : 0 };
+}
+
+// --- News via Google News RSS (parsed in-browser) ----------------------------
+async function liveNews() {
+  const url = "https://news.google.com/rss/search?q=" + encodeURIComponent("Indian stock market Nifty Sensex") + "&hl=en-IN&gl=IN&ceid=IN:en";
+  const res = await proxied(url);
+  const xml = await res.text();
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 8);
+  return items.map((mm) => {
+    const b = mm[1];
+    const title = tag(b, "title"), src = tag(b, "source");
+    return { title, source: src || "Google News", publishedAt: tag(b, "pubDate") };
+  }).filter((n) => n.title);
+}
+function tag(block, t) {
+  const m = block.match(new RegExp(`<${t}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${t}>`, "i"));
+  if (!m) return "";
+  return m[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&quot;/g, '"');
+}
+
+// ---------------------------------------------------------------------------
+// Data assembly
+// ---------------------------------------------------------------------------
+async function tryBackend() {
   try {
     const [overview, portfolio, watchlist, alerts, companies] = await Promise.all([
       fetch("/api/market/overview").then(r => r.ok ? r.json() : Promise.reject()),
@@ -203,37 +219,151 @@ async function tryLive() {
       fetch("/api/alerts").then(r => r.ok ? r.json() : []).catch(() => []),
       fetch("/api/companies").then(r => r.ok ? r.json() : []).catch(() => []),
     ]);
-    return { overview, portfolio, watchlist, alerts, companies, live: true };
-  } catch {
-    return null;
+    return { overview, portfolio, watchlist, alerts, companies };
+  } catch { return null; }
+}
+
+async function tryBrowserLive() {
+  // Fetch all live quotes in parallel; keep track of whether ANY succeeded.
+  const idxDefs = INDEX_DEFS.concat(MACRO_DEFS.filter(d => !d.static));
+  const [idxRes, stockRes, newsRes] = await Promise.all([
+    Promise.allSettled(idxDefs.map(d => yf(d.y))),
+    Promise.allSettled(STOCKS.map(s => yf(s.y))),
+    liveNews().catch(() => null),
+  ]);
+
+  const anyLive = idxRes.concat(stockRes).some(r => r.status === "fulfilled");
+  if (!anyLive) return null; // no connectivity at all → caller uses demo
+
+  // Market (indices + fx/commodities live, macro static)
+  const liveByKey = {};
+  idxDefs.forEach((d, i) => { if (idxRes[i].status === "fulfilled") liveByKey[d.key] = idxRes[i].value; });
+  const market = INDEX_DEFS.concat(MACRO_DEFS).map(d => {
+    const q = liveByKey[d.key];
+    if (q) return { key:d.key, label:d.label, value:round(q.price), change:round(q.change), changePct:round(q.changePct), unit:d.unit };
+    return { key:d.key, label:d.label, value:d.demo, change:0, changePct:0, unit:d.unit };
+  });
+
+  // Companies (live price where available)
+  const companies = STOCKS.map((s, i) => {
+    const q = stockRes[i].status === "fulfilled" ? stockRes[i].value : { price:s.demo, changePct:0 };
+    return { symbol:s.sym, name:s.name, stock:{ price:round(q.price), changePct:round(q.changePct), pe:s.pe }, aiScore:{ growthScore:s.g, riskScore:s.r }, _def:s };
+  });
+
+  // Movers + health
+  const sorted = [...companies].sort((a, b) => b.stock.changePct - a.stock.changePct);
+  const topGainers = sorted.filter(c => c.stock.changePct >= 0).slice(0, 5).map(moverOf);
+  const topLosers = sorted.filter(c => c.stock.changePct < 0).slice(-5).reverse().map(moverOf);
+  const adv = companies.filter(c => c.stock.changePct > 0).length;
+  const dec = companies.filter(c => c.stock.changePct < 0).length;
+  const vix = liveByKey["VIX"]?.price ?? 14;
+  const hscore = Math.max(0, Math.min(100, Math.round((adv / (adv + dec || 1)) * 70 + (vix < 15 ? 30 : vix < 20 ? 18 : 8))));
+  const health = { score:hscore, label: hscore >= 70 ? "Bullish" : hscore >= 45 ? "Neutral" : "Cautious", advances:adv, declines:dec, vix:round(vix) };
+
+  // Portfolio (live P/L from live prices × baked qty/avg)
+  const holdings = STOCKS.filter(s => s.qty > 0).map(s => {
+    const c = companies.find(x => x.symbol === s.sym);
+    const ltp = c.stock.price, cost = s.avg * s.qty, val = ltp * s.qty, pnl = val - cost;
+    return { symbol:s.sym, quantity:s.qty, ltp, invested:round(cost), current:round(val), pnl:round(pnl), pnlPct:round(pnl / cost * 100), cagr:round(pnl / cost * 100 / 2) };
+  });
+  const invested = holdings.reduce((a, h) => a + h.invested, 0);
+  const current = holdings.reduce((a, h) => a + h.current, 0);
+  const portfolio = { summary:{ invested:round(invested), current:round(current), pnl:round(current - invested), pnlPct: invested ? round((current - invested) / invested * 100) : 0 }, holdingsDetail:holdings };
+
+  // Watchlist
+  const watchlist = { items: ["HDFCBANK", "ITC"].map((sym, i) => {
+    const c = companies.find(x => x.symbol === sym);
+    return { id:i, company:{ symbol:sym, name:c.name, stock:c.stock, aiScore:c.aiScore } };
+  }) };
+
+  const news = newsRes && newsRes.length ? newsRes : DEMO_NEWS;
+  const alerts = DEMO_ALERTS;
+
+  return {
+    overview: { market, health, topGainers, topLosers, sectors:SECTORS, news },
+    portfolio, watchlist, alerts,
+    companies: companies.map(({ _def, ...c }) => c),
+  };
+}
+const moverOf = (c) => ({ symbol:c.symbol, name:c.name, price:c.stock.price, changePct:c.stock.changePct });
+
+// --- Demo fallbacks ----------------------------------------------------------
+const DEMO_NEWS = [
+  { title:"Nifty holds gains as IT and metal stocks lead", source:"MarketWire" },
+  { title:"Reliance, HDFC Bank among most active counters", source:"BizToday" },
+  { title:"RBI keeps repo rate unchanged at 6.5%", source:"PolicyWatch" },
+];
+const DEMO_ALERTS = [
+  { type:"QUARTER_RESULT", message:"RELIANCE Q2 results released", createdAt:new Date().toISOString() },
+  { type:"FII_BUYING", message:"FII buying increased in INFOSYS", createdAt:new Date().toISOString() },
+  { type:"DIVIDEND", message:"TCS announced final dividend", createdAt:new Date().toISOString() },
+];
+function demoData() {
+  const market = INDEX_DEFS.concat(MACRO_DEFS).map(d => ({ key:d.key, label:d.label, value:d.demo, change:0, changePct:0, unit:d.unit }));
+  const companies = STOCKS.map(s => ({ symbol:s.sym, name:s.name, stock:{ price:s.demo, changePct:0, pe:s.pe }, aiScore:{ growthScore:s.g, riskScore:s.r } }));
+  const holdings = STOCKS.filter(s => s.qty > 0).map(s => { const val = s.demo * s.qty, cost = s.avg * s.qty; return { symbol:s.sym, quantity:s.qty, ltp:s.demo, invested:cost, current:val, pnl:round(val - cost), pnlPct:round((val - cost) / cost * 100), cagr:round((val - cost) / cost * 50) }; });
+  const invested = holdings.reduce((a, h) => a + h.invested, 0), current = holdings.reduce((a, h) => a + h.current, 0);
+  return {
+    overview: { market, health:{ score:72, label:"Bullish", advances:3, declines:2, vix:13.2 },
+      topGainers:companies.slice(0, 3).map(moverOf), topLosers:companies.slice(3).map(moverOf), sectors:SECTORS, news:DEMO_NEWS },
+    portfolio: { summary:{ invested, current, pnl:round(current - invested), pnlPct:round((current - invested) / invested * 100) }, holdingsDetail:holdings },
+    watchlist: { items:["HDFCBANK", "ITC"].map((sym, i) => { const c = companies.find(x => x.symbol === sym); return { id:i, company:{ symbol:sym, name:c.name, stock:c.stock, aiScore:c.aiScore } }; }) },
+    alerts: DEMO_ALERTS, companies,
+  };
+}
+
+// ---------------------------------------------------------------------------
+async function loadAll() {
+  el("btn").disabled = true;
+  el("dot").className = "dot load";
+  el("statusText").textContent = "Fetching live data…";
+  try {
+    let mode = "live", data = await tryBackend();
+    if (data) { mode = "backend"; }
+    else {
+      data = await tryBrowserLive();
+      if (data) mode = "browser"; else { data = demoData(); mode = "demo"; }
+    }
+    render(data);
+    setStatus(mode);
+  } catch (e) {
+    render(demoData());
+    setStatus("demo");
+  } finally {
+    el("btn").disabled = false;
   }
 }
 
-async function loadAll() {
-  const live = await tryLive();
-  const data = live || { ...DEMO, live: false };
-  render(data);
-
-  el("dot").className = "dot" + (data.live ? "" : " demo");
-  el("statusText").textContent = (data.live ? "Live · " : "Demo · ") + "updated " + new Date().toLocaleTimeString() + " · auto-refresh hourly";
-  el("banner").innerHTML = data.live
-    ? "✅ Connected to backend — showing live data."
-    : "ℹ️ Showing baked-in <b>demo data</b> (no backend running). To see live data: run the backend (<code>npm run dev</code> in /backend) and open <code>http://localhost:4000</code>.";
+function setStatus(mode) {
+  const dot = el("dot"), st = el("statusText"), b = el("banner");
+  const t = new Date().toLocaleTimeString();
+  if (mode === "demo") {
+    dot.className = "dot demo";
+    st.textContent = "Demo · " + t + " · auto-refresh hourly";
+    b.className = "banner demo";
+    b.innerHTML = "⚠️ Couldn't reach the live source (network/proxy blocked). Showing <b>demo data</b>. Click <b>Refresh now</b> to retry, or check your internet.";
+  } else {
+    dot.className = "dot live";
+    st.textContent = (mode === "backend" ? "Live (backend)" : "Live (Yahoo)") + " · " + t + " · auto-refresh hourly";
+    b.className = "banner live";
+    b.innerHTML = mode === "backend"
+      ? "✅ Connected to backend — full live data incl. AI scores."
+      : "✅ <b>Live data</b> from Yahoo Finance (fetched in your browser). Prices update on refresh &amp; hourly; they only move during market hours.";
+  }
 }
 
 function render(d) {
-  const o = d.overview || DEMO.overview;
-  const m = byKey(o.market);
+  const o = d.overview;
+  const m = Object.fromEntries((o.market || []).map(x => [x.key, x]));
 
   el("indices").innerHTML = ["NIFTY","SENSEX","BANKNIFTY","VIX"].map(k => {
     const x = m[k]; if (!x) return "";
-    return tile(x.label, x.value.toLocaleString("en-IN"), arrow(x.changePct) + " " + pct(x.changePct), cls(x.changePct));
+    return tile(x.label, num(x.value), arrow(x.changePct) + " " + pct(x.changePct), cls(x.changePct));
   }).join("");
 
   const h = o.health || {};
   const htone = h.score >= 70 ? "up" : h.score >= 45 ? "warn" : "down";
-  el("health").innerHTML =
-    '<div class="health ' + htone + '">' + (h.score ?? "—") + '</div>' +
+  el("health").innerHTML = '<div class="health ' + htone + '">' + (h.score ?? "—") + '</div>' +
     '<div class="mini" style="margin-top:6px">' + (h.label || "") + '</div>' +
     '<div class="mini muted" style="margin-top:6px">Advances ' + (h.advances ?? "—") + ' · Declines ' + (h.declines ?? "—") + ' · VIX ' + (h.vix ?? "—") + '</div>';
 
@@ -241,72 +371,47 @@ function render(d) {
   el("losers").innerHTML = movers(o.topLosers);
 
   el("sectors").innerHTML = (o.sectors || []).map(s =>
-    '<div class="row"><span>' + s.sector + '</span><span class="' + cls(s.changePct) + '">' + pct(s.changePct) + '</span></div>'
-  ).join("");
+    '<div class="row"><span>' + s.sector + '</span><span class="' + cls(s.changePct) + '">' + pct(s.changePct) + '</span></div>').join("");
 
   el("news").innerHTML = (o.news || []).slice(0, 8).map(n =>
-    '<li><div>' + esc(n.title) + '</div><div class="mini muted">' + esc(n.source || "") + '</div></li>'
-  ).join("");
+    '<li><div>' + esc(n.title) + '</div><div class="mini muted">' + esc(n.source || "") + '</div></li>').join("");
 
   el("macro").innerHTML = ["USDINR","GOLD","SILVER","OIL","GDP","INFLATION","RBI_RATE","FII_DII"]
     .map(k => m[k]).filter(Boolean).map(x =>
       '<div class="tile"><div class="label">' + x.label + '</div><div class="val" style="font-size:18px">' +
-      (x.unit === "INR" ? inr(x.value) : x.value) + (x.unit === "%" ? "%" : "") + '</div></div>'
-    ).join("");
+      (x.unit === "INR" ? inr(x.value) : num(x.value)) + (x.unit === "%" ? "%" : "") + '</div></div>').join("");
 
-  // Portfolio
-  const p = d.portfolio || DEMO.portfolio;
-  const ps = p.summary || {};
+  const p = d.portfolio, ps = p.summary || {};
   el("portfolio").innerHTML =
     '<div class="grid cols-2" style="margin-bottom:10px">' +
-    tile("Current", inr(ps.current)) +
-    tile("P / L", inr(ps.pnl), pct(ps.pnlPct || 0), cls(ps.pnl || 0)) + '</div>' +
-    '<table><thead><tr><th>Symbol</th><th>Qty</th><th>LTP</th><th>P/L</th><th>CAGR</th></tr></thead><tbody>' +
-    (p.holdingsDetail || []).map(r =>
-      '<tr><td>' + r.symbol + '</td><td>' + r.quantity + '</td><td>' + inr(r.ltp) + '</td>' +
-      '<td class="' + cls(r.pnl) + '">' + inr(r.pnl) + '</td><td class="' + cls(r.cagr) + '">' + r.cagr + '%</td></tr>'
-    ).join("") + '</tbody></table>';
+    tile("Current", inr(ps.current)) + tile("P / L", inr(ps.pnl), pct(ps.pnlPct || 0), cls(ps.pnl || 0)) + '</div>' +
+    '<table><thead><tr><th>Symbol</th><th>Qty</th><th>LTP</th><th>P/L</th></tr></thead><tbody>' +
+    (p.holdingsDetail || []).map(r => '<tr><td>' + r.symbol + '</td><td>' + r.quantity + '</td><td>' + inr(r.ltp) +
+      '</td><td class="' + cls(r.pnl) + '">' + inr(r.pnl) + ' (' + pct(r.pnlPct) + ')</td></tr>').join("") + '</tbody></table>';
 
-  // Watchlist
-  const items = (d.watchlist || DEMO.watchlist).items || [];
-  el("watchlist").innerHTML =
-    '<table><thead><tr><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
-    items.map(it => {
-      const st = it.company.stock, ai = it.company.aiScore;
-      return '<tr><td>' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td>' +
-        '<td class="' + cls(st?.changePct || 0) + '">' + (st ? pct(st.changePct) : "—") + '</td>' +
-        '<td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+  const items = (d.watchlist || {}).items || [];
+  el("watchlist").innerHTML = '<table><thead><tr><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+    items.map(it => { const st = it.company.stock, ai = it.company.aiScore;
+      return '<tr><td>' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
+        (st ? pct(st.changePct) : "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
     }).join("") + '</tbody></table>';
 
-  // Alerts
-  const alerts = d.alerts || DEMO.alerts;
-  el("alerts").innerHTML = alerts.slice(0, 10).map(a =>
+  el("alerts").innerHTML = (d.alerts || []).slice(0, 10).map(a =>
     '<div class="alert"><span class="pill">' + a.type + '</span><span>' + esc(a.message) +
-    '<div class="mini muted">' + new Date(a.createdAt).toLocaleString() + '</div></span></div>'
-  ).join("");
+    '<div class="mini muted">' + new Date(a.createdAt).toLocaleString() + '</div></span></div>').join("");
 
-  // Companies
-  const list = d.companies || DEMO.companies;
-  el("companies").innerHTML =
-    '<table><thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
-    list.map(c => {
-      const st = c.stock, ai = c.aiScore;
-      return '<tr><td>' + c.symbol + '</td><td class="muted">' + esc(c.name) + '</td>' +
-        '<td>' + inr(st?.price) + '</td>' +
-        '<td class="' + cls(st?.changePct || 0) + '">' + (st ? pct(st.changePct) : "—") + '</td>' +
-        '<td>' + (st?.pe ?? "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td>' +
-        '<td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
+  el("companies").innerHTML = '<table><thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
+    (d.companies || []).map(c => { const st = c.stock, ai = c.aiScore;
+      return '<tr><td>' + c.symbol + '</td><td class="muted">' + esc(c.name) + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
+        (st ? pct(st.changePct) : "—") + '</td><td>' + (st?.pe ?? "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
     }).join("") + '</tbody></table>';
 }
 
 function movers(list) {
   if (!list || !list.length) return '<div class="muted mini">No data</div>';
-  return list.map(r =>
-    '<div class="row"><span title="' + esc(r.name || "") + '">' + r.symbol + '</span>' +
-    '<span><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>'
-  ).join("");
+  return list.map(r => '<div class="row"><span title="' + esc(r.name || "") + '">' + r.symbol + '</span>' +
+    '<span><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>').join("");
 }
-
 function tile(label, val, sub, tone) {
   return '<div class="tile card"><div class="label">' + label + '</div><div class="val ' + (tone || "") + '">' + val + '</div>' +
     (sub ? '<div class="sub ' + (tone || "muted") + '">' + sub + '</div>' : "") + '</div>';
