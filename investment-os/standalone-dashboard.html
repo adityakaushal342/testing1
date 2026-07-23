@@ -176,6 +176,11 @@ const SECTORS = [
 
 const inr = (n) => n == null ? "—" : "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 const num = (n) => n == null ? "—" : Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+// In demo mode, prefix prices with "~" so placeholder values are never mistaken
+// for real live quotes.
+let CURRENT_MODE = "demo";
+const px = (v) => (CURRENT_MODE === "demo" ? "~" : "") + inr(v);
+const pxn = (v) => (CURRENT_MODE === "demo" ? "~" : "") + num(v);
 const pct = (n) => (n >= 0 ? "+" : "") + Number(n).toFixed(2) + "%";
 const cls = (n) => (n >= 0 ? "up" : "down");
 const arrow = (n) => (n >= 0 ? "▲" : "▼");
@@ -355,6 +360,7 @@ async function loadAll() {
       data = await tryBrowserLive();
       if (data) mode = "browser"; else { data = demoData(); mode = "demo"; }
     }
+    CURRENT_MODE = mode;
     render(data);
     setStatus(mode);
   } catch (e) {
@@ -372,8 +378,8 @@ function setStatus(mode) {
     dot.className = "dot demo";
     st.textContent = "Demo · " + t + " · auto-refresh hourly";
     b.className = "banner demo";
-    b.innerHTML = "⚠️ Couldn't reach live data through a public proxy (often blocked/rate-limited). Showing <b>demo data</b>.<br>" +
-      "✅ For reliable live data with no setup: put <code>live-server.js</code> next to this file and run <code>node live-server.js</code>, then open the URL it prints. Or click <b>Refresh now</b> to retry the public proxy.";
+    b.innerHTML = "⚠️ Couldn't reach live data through a public proxy (often blocked/rate-limited). Showing <b>demo data</b> — prices marked <b>~</b> are placeholders, <b>not real</b> (e.g. real ICICI Bank may be ₹1,400+ while demo shows ~₹1,180).<br>" +
+      "✅ For real live prices with no setup: put <code>live-server.js</code> next to this file and run <code>node live-server.js</code>, then open the URL it prints. Or click <b>Refresh now</b> to retry.";
   } else {
     dot.className = "dot live";
     st.textContent = (mode === "backend" ? "Live (backend)" : "Live (Yahoo)") + " · " + t + " · auto-refresh hourly";
@@ -390,7 +396,7 @@ function render(d) {
 
   el("indices").innerHTML = ["NIFTY","SENSEX","BANKNIFTY","VIX"].map(k => {
     const x = m[k]; if (!x) return "";
-    return tile(x.label, num(x.value), arrow(x.changePct) + " " + pct(x.changePct), cls(x.changePct));
+    return tile(x.label, pxn(x.value), arrow(x.changePct) + " " + pct(x.changePct), cls(x.changePct));
   }).join("");
 
   const h = o.health || {};
@@ -411,7 +417,7 @@ function render(d) {
   el("macro").innerHTML = ["USDINR","GOLD","SILVER","OIL","GDP","INFLATION","RBI_RATE","FII_DII"]
     .map(k => m[k]).filter(Boolean).map(x =>
       '<div class="tile"><div class="label">' + x.label + '</div><div class="val" style="font-size:18px">' +
-      (x.unit === "INR" ? inr(x.value) : num(x.value)) + (x.unit === "%" ? "%" : "") + '</div></div>').join("");
+      (x.unit === "INR" ? px(x.value) : pxn(x.value)) + (x.unit === "%" ? "%" : "") + '</div></div>').join("");
 
   renderSuggestions(d.suggestions || buildSuggestions(d.companies || []));
 
@@ -429,7 +435,7 @@ function render(d) {
   const items = (d.watchlist || {}).items || [];
   el("watchlist").innerHTML = '<table><thead><tr><th>Company</th><th>Symbol</th><th>Price</th><th>Chg</th><th>Growth</th></tr></thead><tbody>' +
     items.map(it => { const st = it.company.stock, ai = it.company.aiScore;
-      return '<tr><td><b>' + esc(it.company.name) + '</b></td><td class="muted">' + it.company.symbol + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
+      return '<tr><td><b>' + esc(it.company.name) + '</b></td><td class="muted">' + it.company.symbol + '</td><td>' + px(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
         (st ? pct(st.changePct) : "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td></tr>';
     }).join("") + '</tbody></table>';
 
@@ -439,7 +445,7 @@ function render(d) {
 
   el("companies").innerHTML = '<table><thead><tr><th>Company name</th><th>NSE symbol</th><th>Price</th><th>Chg</th><th>PE</th><th>Growth</th><th>Risk</th></tr></thead><tbody>' +
     (d.companies || []).map(c => { const st = c.stock, ai = c.aiScore;
-      return '<tr><td><b>' + esc(c.name) + '</b></td><td class="muted">' + c.symbol + '</td><td>' + inr(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
+      return '<tr><td><b>' + esc(c.name) + '</b></td><td class="muted">' + c.symbol + '</td><td>' + px(st?.price) + '</td><td class="' + cls(st?.changePct || 0) + '">' +
         (st ? pct(st.changePct) : "—") + '</td><td>' + (st?.pe ?? "—") + '</td><td class="up">' + (ai?.growthScore ?? "—") + '</td><td class="down">' + (ai?.riskScore ?? "—") + '</td></tr>';
     }).join("") + '</tbody></table>';
 }
@@ -456,7 +462,7 @@ function renderSuggestions(list) {
         '<div><b>' + esc(s.name) + '</b> <div class="mini muted">NSE: ' + s.symbol + '</div></div>' +
         '<span class="pill" style="background:#052e16;color:#bbf7d0">Growth ' + s.growthScore + '</span>' +
       '</div>' +
-      '<div style="margin-top:8px">' + inr(s.price) + ' <span class="' + cls(s.changePct || 0) + '">' + (s.price != null ? pct(s.changePct || 0) : "") + '</span>' +
+      '<div style="margin-top:8px">' + px(s.price) + ' <span class="' + cls(s.changePct || 0) + '">' + (s.price != null ? pct(s.changePct || 0) : "") + '</span>' +
         ' &nbsp;<span class="mini muted">Risk ' + s.riskScore + '</span></div>' +
       (s.reason ? '<div class="mini" style="margin-top:8px">💡 ' + esc(s.reason) + '</div>' : "") +
       (inv.length ? '<div class="mini muted" style="margin-top:8px">👥 Invested by: ' + inv.join(" · ") + '</div>' : "") +
@@ -467,7 +473,7 @@ function renderSuggestions(list) {
 function movers(list) {
   if (!list || !list.length) return '<div class="muted mini">No data</div>';
   return list.map(r => '<div class="row"><span>' + esc(r.name || r.symbol) + '<div class="mini muted">' + r.symbol + '</div></span>' +
-    '<span style="text-align:right"><span class="muted">' + inr(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>').join("");
+    '<span style="text-align:right"><span class="muted">' + px(r.price) + '</span> &nbsp;<span class="' + cls(r.changePct) + '">' + pct(r.changePct) + '</span></span></div>').join("");
 }
 function tile(label, val, sub, tone) {
   return '<div class="tile card"><div class="label">' + label + '</div><div class="val ' + (tone || "") + '">' + val + '</div>' +
