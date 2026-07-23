@@ -84,6 +84,21 @@
     <div class="grid cols-3" id="suggestions"></div>
   </section>
 
+  <section class="card">
+    <h2>⏳ Holding-period analysis — how long to hold for profit (historical)</h2>
+    <div class="mini muted" style="margin-bottom:10px">
+      Uses the last ~5 years of <b>real</b> prices: for each holding period it shows how often it ended in
+      profit, and the best / worst / average return. This is <b>history, not a prediction</b> — past
+      performance does <b>not</b> guarantee future results. <b>Not financial advice.</b>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <select id="holdSel" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px"></select>
+      <button id="holdBtn" onclick="runHolding()">Analyze</button>
+      <span id="holdStatus" class="mini muted"></span>
+    </div>
+    <div id="holdResult"></div>
+  </section>
+
   <div class="grid cols-2" style="margin-bottom:18px">
     <div class="card"><h2>Portfolio (live P/L)</h2><div id="portfolio"></div></div>
     <div class="card"><h2>Watchlist</h2><div id="watchlist"></div></div>
@@ -219,6 +234,78 @@ async function yf(symbol, range = "5d", interval = "1d") {
   const price = m.regularMarketPrice;
   const prev = m.chartPreviousClose ?? m.previousClose ?? price;
   return { price, change: price - prev, changePct: prev ? (price - prev) / prev * 100 : 0 };
+}
+
+// Fetch a long history of closing prices (weekly) for holding-period analysis.
+async function fetchHistory(symbol, range = "5y", interval = "1wk") {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+  const res = await proxied(url);
+  const j = await res.json();
+  const closes = (j?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
+  return closes;
+}
+
+// For a holding window of `weeks`, compute historical outcome stats across all
+// overlapping windows: win rate (% profitable), average, worst and best return.
+function analyzeHolding(closes, weeks) {
+  const rets = [];
+  for (let i = 0; i + weeks < closes.length; i++) {
+    const r = (closes[i + weeks] - closes[i]) / closes[i] * 100;
+    if (isFinite(r)) rets.push(r);
+  }
+  if (!rets.length) return null;
+  const wins = rets.filter(x => x > 0).length;
+  const avg = rets.reduce((a, b) => a + b, 0) / rets.length;
+  return { count: rets.length, winRate: wins / rets.length * 100, avg, min: Math.min(...rets), max: Math.max(...rets) };
+}
+
+const HOLD_PERIODS = [
+  { label: "1 month", w: 4 }, { label: "3 months", w: 13 }, { label: "6 months", w: 26 },
+  { label: "1 year", w: 52 }, { label: "2 years", w: 104 },
+];
+
+async function runHolding() {
+  const sym = el("holdSel").value;
+  const def = META[sym];
+  if (!def) return;
+  el("holdBtn").disabled = true;
+  el("holdStatus").textContent = "Fetching 5-year history…";
+  el("holdResult").innerHTML = "";
+  try {
+    const closes = await fetchHistory(def.y);
+    if (closes.length < 60) throw new Error("not enough history");
+    const rows = HOLD_PERIODS.map(p => ({ p, a: analyzeHolding(closes, p.w) })).filter(x => x.a);
+    renderHolding(def, rows);
+    el("holdStatus").textContent = "";
+  } catch (e) {
+    el("holdResult").innerHTML = '<div class="mini warn">Couldn\'t analyze — this needs live data. Run it through <code>live-server.js</code> (not the bare file). [' + esc(e.message) + ']</div>';
+    el("holdStatus").textContent = "";
+  } finally {
+    el("holdBtn").disabled = false;
+  }
+}
+
+function renderHolding(def, rows) {
+  const best = rows.find(r => r.a.winRate >= 70);
+  const summary = best
+    ? '📌 Over the last ~5 years, holding <b>' + esc(def.name) + '</b> for at least <b>' + best.p.label +
+      '</b> ended in profit about <b>' + best.a.winRate.toFixed(0) + '%</b> of the time (avg ' +
+      (best.a.avg >= 0 ? "+" : "") + best.a.avg.toFixed(1) + '%). Shorter holds were more of a gamble.'
+    : '📌 Over the last ~5 years, <b>' + esc(def.name) + '</b> was <b>not</b> profitable ≥70% of the time even at 2-year holds — historically volatile, no "safe" holding window.';
+  const tone = (wr) => wr >= 60 ? "up" : wr >= 45 ? "warn" : "down";
+  el("holdResult").innerHTML =
+    '<div class="mini" style="margin-bottom:10px">' + summary + '</div>' +
+    '<div style="overflow-x:auto"><table><thead><tr>' +
+    '<th>Hold for</th><th>Profitable %</th><th>Avg return</th><th>Worst</th><th>Best</th><th>Samples</th>' +
+    '</tr></thead><tbody>' +
+    rows.map(r => '<tr><td><b>' + r.p.label + '</b></td>' +
+      '<td class="' + tone(r.a.winRate) + '">' + r.a.winRate.toFixed(0) + '%</td>' +
+      '<td class="' + cls(r.a.avg) + '">' + (r.a.avg >= 0 ? "+" : "") + r.a.avg.toFixed(1) + '%</td>' +
+      '<td class="down">' + r.a.min.toFixed(1) + '%</td>' +
+      '<td class="up">+' + r.a.max.toFixed(1) + '%</td>' +
+      '<td class="muted">' + r.a.count + '</td></tr>').join("") +
+    '</tbody></table></div>' +
+    '<div class="mini muted" style="margin-top:8px">“Profitable %” = share of past windows that ended up. “Worst/Best” = the range of outcomes you could have seen. Longer holds usually raised the profit rate — but this is history, not a promise.</div>';
 }
 
 // --- News via Google News RSS (parsed in-browser) ----------------------------
@@ -479,6 +566,9 @@ function tile(label, val, sub, tone) {
   return '<div class="tile card"><div class="label">' + label + '</div><div class="val ' + (tone || "") + '">' + val + '</div>' +
     (sub ? '<div class="sub ' + (tone || "muted") + '">' + sub + '</div>' : "") + '</div>';
 }
+
+// Populate the holding-period stock selector.
+el("holdSel").innerHTML = STOCKS.map(s => '<option value="' + s.sym + '">' + esc(s.name) + '</option>').join("");
 
 loadAll();
 setInterval(loadAll, REFRESH_MS);
